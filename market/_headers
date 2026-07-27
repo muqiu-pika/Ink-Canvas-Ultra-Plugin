@@ -1,9 +1,0 @@
-/v1/market.json
-  Access-Control-Allow-Origin: *
-  Content-Type: application/json; charset=utf-8
-  Cache-Control: public, max-age=60
-
-/v1/plugins/*
-  Access-Control-Allow-Origin: *
-  Content-Type: text/markdown; charset=utf-8
-  Cache-Control: public, max-age=300
