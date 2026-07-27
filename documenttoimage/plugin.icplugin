@@ -1,0 +1,10 @@
+{
+  "id": "ink-canvas.document-to-image",
+  "name": "文档转照片",
+  "version": "2.0.0",
+  "author": "muqiu",
+  "description": "将 Word / Excel / PDF 文件转换为图片并添加到照片列表，使用 NPOI 与 PdfiumViewer，无需安装 Microsoft Office。",
+  "entryAssembly": "DocumentToImagePlugin.dll",
+  "entryClass": "Ink_Canvas.Plugins.DocumentToImage.DocumentToImagePlugin",
+  "minHostVersion": "8.0.1"
+}

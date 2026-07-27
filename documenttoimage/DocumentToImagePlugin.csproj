@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>DocumentToImagePlugin</AssemblyName>
+    <RootNamespace>Ink_Canvas.Plugins.DocumentToImage</RootNamespace>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <Platforms>x64;AnyCPU</Platforms>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>embedded</DebugType>
+    <Nullable>disable</Nullable>
+    <LangVersion>7.3</LangVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\</OutputPath>
+  </PropertyGroup>
+
+  <!--
+    开发时请把 HintPath 替换为本机上 Ink Canvas Ultra.exe 的输出路径。
+    例如：C:\path\to\Ink-Canvas-Ultra\Ink Canvas\bin\Release\Ink Canvas Ultra.exe
+  -->
+  <ItemGroup>
+    <Reference Include="Ink Canvas Ultra">
+      <HintPath>c:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Release\Ink Canvas Ultra.exe</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="ReachFramework" />
+    <Reference Include="System.Printing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NPOI" Version="2.5.6" />
+    <PackageReference Include="PdfiumViewer" Version="2.13.0" />
+    <!-- 不带 V8/XFA 的 pdfium 原生包，仅用于 PDF 转图片，体积更小 -->
+    <PackageReference Include="PdfiumViewer.Native.x86.no_v8-no_xfa" Version="2018.4.8.256" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 插件清单与打包脚本 -->
+    <None Include="plugin.icplugin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="pack.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <!--
+    SDK 风格项目默认会递归包含所有 .cs 与 .xaml 文件，无需显式声明 Compile/Page 项。
+  -->
+
+</Project>

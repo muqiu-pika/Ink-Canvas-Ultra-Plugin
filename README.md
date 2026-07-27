@@ -20,15 +20,31 @@ Ink-Canvas-Ultra/
 │   └── ...
 └── Ink-Canvas-Ultra-Plugin/             # plugin 开发资料 + 官方示例
     ├── README.md                        # 本文件
-    ├── Specification/                   # 规范文档目录
-    │   └── icplugin-spec.md             # 完整规范
     ├── Templates/                       # plugin 项目模板
     │   └── plugin-template/             # 通用模板
-    └── visualpresenter/                 # 官方视频展台 plugin 示例
-        ├── plugin.icplugin              # 清单
-        ├── build.ps1                    # 构建脚本
-        └── src/
-            └── VisualPresenterPlugin.cs # plugin 源码
+    ├── videocontrols/                   # 官方视频控件 plugin 示例
+    │   ├── plugin.icplugin
+    │   ├── VideoControlsPlugin.csproj
+    │   ├── pack.ps1
+    │   └── src/
+    │       └── VideoControlsPlugin.cs
+    ├── documenttoimage/                 # 官方文档转照片 plugin 示例
+    │   ├── plugin.icplugin
+    │   ├── DocumentToImagePlugin.csproj
+    │   ├── pack.ps1
+    │   ├── Converters/
+    │   │   ├── ExcelToImageConverter.cs
+    │   │   ├── PdfToImageConverter.cs
+    │   │   └── WordToImageConverter.cs
+    │   ├── Helpers/
+    │   │   └── ProgressReporter.cs
+    │   └── UI/
+    │       ├── ConversionProgress.cs
+    │       ├── ConversionProgressWindow.xaml
+    │       └── ConversionProgressWindow.xaml.cs
+    ├── autophoto.icplugin               # 官方智能拍照 plugin 安装包
+    ├── videocontrols.icplugin           # 官方视频控件 plugin 安装包
+    └── visualpresenter.icplugin         # 官方视频展台 plugin 安装包
 ```
 
 主程序运行时从 `<可执行文件目录>\Plugins\` 加载 plugin。每个 plugin 占用一个子目录：
@@ -341,12 +357,12 @@ visualpresenter.icplugin（实为 ZIP）
 
 ### 7.4 打包脚本示例
 
-`visualpresenter\pack.ps1` 演示了如何从源码构建并打包 `.icplugin` 文件：
+`videocontrols\pack.ps1` 与 `documenttoimage\pack.ps1` 演示了如何从源码构建并打包 `.icplugin` 文件：
 
-1. 调用 `dotnet build` 编译 `VisualPresenterPlugin.csproj`，生成 `VisualPresenterPlugin.dll`
-2. 在临时目录中收集 `plugin.icplugin`、`*.dll`、`*.pdb`、`icon.png`（如有）
-3. 使用 `[System.IO.Compression.ZipFile]::CreateFromDirectory` 将临时目录打包为 `visualpresenter.icplugin`
-4. 输出到上级目录 `Ink-Canvas-Ultra-Plugin\visualpresenter.icplugin`
+1. 调用 `dotnet build` 编译 plugin 项目，生成入口 DLL
+2. 在临时目录中收集 `plugin.icplugin`、插件 DLL、插件私有依赖 DLL、`icon.png`（如有）
+3. 使用 `[System.IO.Compression.ZipFile]::CreateFromDirectory` 将临时目录打包为 `<plugin-id>.icplugin`
+4. 输出到上级目录 `Ink-Canvas-Ultra-Plugin\<plugin-id>.icplugin`
 
 > 注意：plugin 程序集目标框架必须为 .NET Framework 4.7.2，且不应捆绑主程序已加载的 DLL 副本（详见 §6）。
 

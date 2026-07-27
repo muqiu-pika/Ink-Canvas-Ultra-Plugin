@@ -1,0 +1,20 @@
+{
+    "id": "ink-canvas.videocontrols",
+    "name": "视频控件",
+    "version": "1.0.0",
+    "author": "Ink Canvas Ultra",
+    "description": "为 Ink Canvas Ultra 提供视频元素的播放控制条（进度条、暂停/播放、音量）。选中视频元素时自动显示控制条。",
+    "entryAssembly": "VideoControlsPlugin.dll",
+    "entryClass": "Ink_Canvas.Plugins.VideoControls.VideoControlsPlugin",
+    "minHostVersion": "7.0.0",
+    "entryPoints": [
+        {
+            "route": "video-insert",
+            "placement": "board-toolbar",
+            "label": "插入视频",
+            "glyph": "",
+            "order": 60,
+            "tooltip": "插入视频文件并由视频控件 plugin 接管"
+        }
+    ]
+}
