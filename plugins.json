@@ -1,0 +1,45 @@
+{
+  "version": 1,
+  "plugins": [
+    {
+      "id": "ink-canvas.document-to-image",
+      "name": "文档转照片",
+      "version": "2.0.0",
+      "author": "muqiu",
+      "description": "将 Word / Excel / PDF 文件转换为图片并添加到照片列表，使用 NPOI 与 PdfiumViewer，无需安装 Microsoft Office。",
+      "downloadUrl": "https://github.com/muqiu1a/Ink-Canvas-Ultra-Plugin/raw/main/documenttoimage.icplugin",
+      "icon": "📄",
+      "minHostVersion": "8.0.1"
+    },
+    {
+      "id": "ink-canvas.video-controls",
+      "name": "视频控件",
+      "version": "1.0.0",
+      "author": "muqiu",
+      "description": "为 Ink Canvas Ultra 提供视频播放控制条（进度、暂停、音量等），仅作用于视频条目。",
+      "downloadUrl": "https://github.com/muqiu1a/Ink-Canvas-Ultra-Plugin/raw/main/videocontrols.icplugin",
+      "icon": "🎬",
+      "minHostVersion": "8.0.0"
+    },
+    {
+      "id": "ink-canvas.auto-photo",
+      "name": "智能拍照",
+      "version": "1.0.0",
+      "author": "muqiu",
+      "description": "定时/触发式自动截图保存到照片列表。",
+      "downloadUrl": "https://github.com/muqiu1a/Ink-Canvas-Ultra-Plugin/raw/main/autophoto.icplugin",
+      "icon": "📷",
+      "minHostVersion": "8.0.0"
+    },
+    {
+      "id": "ink-canvas.visual-presenter",
+      "name": "视频展台",
+      "version": "1.0.0",
+      "author": "muqiu",
+      "description": "连接实物展台/摄像头，实时投屏并截图保存。",
+      "downloadUrl": "https://github.com/muqiu1a/Ink-Canvas-Ultra-Plugin/raw/main/visualpresenter.icplugin",
+      "icon": "📹",
+      "minHostVersion": "8.0.0"
+    }
+  ]
+}
