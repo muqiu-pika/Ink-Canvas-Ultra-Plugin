@@ -19,7 +19,11 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
     /// </summary>
     public static class WordToImageConverter
     {
-        public static List<BitmapImage> Convert(string filePath, int dpi, IProgress<ConversionProgress> progress)
+        /// <summary>
+        /// 将 Word 文档逐页渲染为 PNG 文件写入磁盘，返回临时文件路径列表。
+        /// 避免所有页面同时驻留内存导致 OOM。
+        /// </summary>
+        public static List<string> ConvertToFiles(string filePath, int dpi, string tempDir, IProgress<ConversionProgress> progress)
         {
             if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
                 throw new FileNotFoundException("Word 文档不存在", filePath);
@@ -52,10 +56,10 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
             progress?.Report(new ConversionProgress
             {
                 FileName = fileName,
-                Message = "正在分页渲染 Word 页面..."
+                Message = "正在逐页渲染 Word 页面到磁盘..."
             });
 
-            return RenderFlowDocumentToImages(flowDocument, dpi, fileName, progress);
+            return RenderFlowDocumentToFiles(flowDocument, dpi, tempDir, fileName, progress);
         }
 
         private static void ReadDocx(string filePath, FlowDocument flowDocument)
@@ -118,10 +122,10 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
             }
         }
 
-        private static List<BitmapImage> RenderFlowDocumentToImages(FlowDocument flowDocument, int dpi, string fileName, IProgress<ConversionProgress> progress)
+        private static List<string> RenderFlowDocumentToFiles(FlowDocument flowDocument, int dpi, string tempDir, string fileName, IProgress<ConversionProgress> progress)
         {
-            var images = new List<BitmapImage>();
-            string tempXps = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xps");
+            var pageFiles = new List<string>();
+            string tempXps = Path.Combine(tempDir, Guid.NewGuid().ToString("N") + ".xps");
 
             try
             {
@@ -163,9 +167,15 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
                             int height = (int)Math.Ceiling(fixedPage.DesiredSize.Height * dpi / 96.0);
                             if (width <= 0 || height <= 0) continue;
 
-                            var rtb = new RenderTargetBitmap(width, height, dpi, dpi, PixelFormats.Pbgra32);
-                            rtb.Render(fixedPage);
-                            images.Add(ConvertBitmapSourceToBitmapImage(rtb));
+                            pageFiles.AddRange(RenderVisualToFiles(
+                                fixedPage,
+                                fixedPage.DesiredSize.Width,
+                                fixedPage.DesiredSize.Height,
+                                width,
+                                height,
+                                dpi,
+                                tempDir,
+                                $"page_{current:D04}"));
                         }
                     }
                 }
@@ -175,25 +185,79 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
                 try { File.Delete(tempXps); } catch { }
             }
 
-            return images;
+            return pageFiles;
         }
 
-        private static BitmapImage ConvertBitmapSourceToBitmapImage(BitmapSource source)
+        private static void SaveBitmapToPngFile(BitmapSource source, string filePath)
         {
             var encoder = new PngBitmapEncoder();
             encoder.Frames.Add(BitmapFrame.Create(source));
-            using (var ms = new MemoryStream())
+            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write))
             {
-                encoder.Save(ms);
-                ms.Position = 0;
-                var bitmapImage = new BitmapImage();
-                bitmapImage.BeginInit();
-                bitmapImage.StreamSource = ms;
-                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                bitmapImage.EndInit();
-                bitmapImage.Freeze();
-                return bitmapImage;
+                encoder.Save(fs);
             }
+        }
+
+        private static List<string> RenderVisualToFiles(Visual visual, double visualWidthDip, double visualHeightDip, int pixelWidth, int pixelHeight, int dpi, string tempDir, string filePrefix)
+        {
+            var pageFiles = new List<string>();
+            if (visual == null || visualWidthDip <= 0 || visualHeightDip <= 0 || pixelWidth <= 0 || pixelHeight <= 0)
+                return pageFiles;
+
+            double scale = dpi / 96.0;
+            int stripPixelHeight = CalculateStripPixelHeight(pixelWidth);
+            int stripCount = Math.Max(1, (int)Math.Ceiling((double)pixelHeight / stripPixelHeight));
+
+            for (int stripIndex = 0; stripIndex < stripCount; stripIndex++)
+            {
+                int offsetPixels = stripIndex * stripPixelHeight;
+                int currentStripPixelHeight = Math.Min(stripPixelHeight, pixelHeight - offsetPixels);
+                double offsetDip = offsetPixels / scale;
+                double currentStripHeightDip = currentStripPixelHeight / scale;
+
+                var drawingVisual = new DrawingVisual();
+                using (var dc = drawingVisual.RenderOpen())
+                {
+                    dc.DrawRectangle(Brushes.White, null, new Rect(0, 0, visualWidthDip, currentStripHeightDip));
+                    var brush = new VisualBrush(visual)
+                    {
+                        Stretch = Stretch.None,
+                        AlignmentX = AlignmentX.Left,
+                        AlignmentY = AlignmentY.Top,
+                        ViewboxUnits = BrushMappingMode.Absolute,
+                        Viewbox = new Rect(0, offsetDip, visualWidthDip, currentStripHeightDip),
+                        ViewportUnits = BrushMappingMode.Absolute,
+                        Viewport = new Rect(0, 0, visualWidthDip, currentStripHeightDip)
+                    };
+                    dc.DrawRectangle(brush, null, new Rect(0, 0, visualWidthDip, currentStripHeightDip));
+                }
+
+                var rtb = new RenderTargetBitmap(pixelWidth, currentStripPixelHeight, dpi, dpi, PixelFormats.Pbgra32);
+                rtb.Render(drawingVisual);
+
+                string filePath = stripCount == 1
+                    ? Path.Combine(tempDir, filePrefix + ".png")
+                    : Path.Combine(tempDir, $"{filePrefix}_{stripIndex + 1:D04}.png");
+                SaveBitmapToPngFile(rtb, filePath);
+                pageFiles.Add(filePath);
+            }
+
+            return pageFiles;
+        }
+
+        private static int CalculateStripPixelHeight(int pixelWidth)
+        {
+            const long targetPixelsPerStrip = 16L * 1024 * 1024;
+            const int minStripHeight = 512;
+            const int maxStripHeight = 4096;
+
+            if (pixelWidth <= 0)
+                return maxStripHeight;
+
+            long estimated = targetPixelsPerStrip / pixelWidth;
+            if (estimated < minStripHeight) return minStripHeight;
+            if (estimated > maxStripHeight) return maxStripHeight;
+            return (int)estimated;
         }
     }
 }

@@ -3,9 +3,9 @@ using PdfiumViewer;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
-using System.Windows.Media.Imaging;
 
 namespace Ink_Canvas.Plugins.DocumentToImage.Converters
 {
@@ -15,7 +15,11 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
     /// </summary>
     internal static class PdfToImageConverter
     {
-        public static List<BitmapImage> Convert(string pdfPath, int dpi, IProgress<ConversionProgress> progress)
+        /// <summary>
+        /// 将 PDF 逐页渲染为 PNG 文件写入磁盘，返回临时文件路径列表。
+        /// 避免所有页面同时驻留内存导致 OOM。
+        /// </summary>
+        public static List<string> ConvertToFiles(string pdfPath, int dpi, string tempDir, IProgress<ConversionProgress> progress)
         {
             if (string.IsNullOrWhiteSpace(pdfPath) || !File.Exists(pdfPath))
                 throw new FileNotFoundException("PDF 文件不存在", pdfPath);
@@ -27,7 +31,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
                 Message = "正在读取 PDF 页面..."
             });
 
-            var result = new List<BitmapImage>();
+            var pageFiles = new List<string>();
 
             using (var document = PdfDocument.Load(pdfPath))
             {
@@ -51,34 +55,67 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
 
                     using (Bitmap bitmap = (Bitmap)document.Render(i, width, height, dpi, dpi, PdfRenderFlags.Annotations))
                     {
-                        var bitmapImage = ConvertBitmapToBitmapImage(bitmap);
-                        if (bitmapImage != null)
-                            result.Add(bitmapImage);
+                        pageFiles.AddRange(SaveBitmapToFiles(bitmap, tempDir, $"page_{i + 1:D04}"));
                     }
                 }
             }
 
-            return result;
+            return pageFiles;
         }
 
-        private static BitmapImage ConvertBitmapToBitmapImage(Bitmap bitmap)
+        private static List<string> SaveBitmapToFiles(Bitmap bitmap, string tempDir, string filePrefix)
         {
-            if (bitmap == null) return null;
+            var pageFiles = new List<string>();
+            if (bitmap == null || bitmap.Width <= 0 || bitmap.Height <= 0)
+                return pageFiles;
 
-            using (var memory = new MemoryStream())
+            int stripPixelHeight = CalculateStripPixelHeight(bitmap.Width);
+            int stripCount = Math.Max(1, (int)Math.Ceiling((double)bitmap.Height / stripPixelHeight));
+
+            for (int stripIndex = 0; stripIndex < stripCount; stripIndex++)
             {
-                bitmap.Save(memory, ImageFormat.Png);
-                memory.Position = 0;
+                int offsetY = stripIndex * stripPixelHeight;
+                int currentStripHeight = Math.Min(stripPixelHeight, bitmap.Height - offsetY);
+                using (var stripBitmap = new Bitmap(bitmap.Width, currentStripHeight, PixelFormat.Format32bppArgb))
+                {
+                    stripBitmap.SetResolution(bitmap.HorizontalResolution, bitmap.VerticalResolution);
+                    using (var g = Graphics.FromImage(stripBitmap))
+                    {
+                        g.Clear(Color.White);
+                        g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
+                        g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                        g.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+                        g.DrawImage(
+                            bitmap,
+                            new Rectangle(0, 0, bitmap.Width, currentStripHeight),
+                            new Rectangle(0, offsetY, bitmap.Width, currentStripHeight),
+                            GraphicsUnit.Pixel);
+                    }
 
-                var bitmapImage = new BitmapImage();
-                bitmapImage.BeginInit();
-                bitmapImage.StreamSource = memory;
-                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                bitmapImage.EndInit();
-                bitmapImage.Freeze();
-
-                return bitmapImage;
+                    string filePath = stripCount == 1
+                        ? Path.Combine(tempDir, filePrefix + ".png")
+                        : Path.Combine(tempDir, $"{filePrefix}_{stripIndex + 1:D04}.png");
+                    stripBitmap.Save(filePath, ImageFormat.Png);
+                    pageFiles.Add(filePath);
+                }
             }
+
+            return pageFiles;
+        }
+
+        private static int CalculateStripPixelHeight(int pixelWidth)
+        {
+            const long targetPixelsPerStrip = 16L * 1024 * 1024;
+            const int minStripHeight = 512;
+            const int maxStripHeight = 4096;
+
+            if (pixelWidth <= 0)
+                return maxStripHeight;
+
+            long estimated = targetPixelsPerStrip / pixelWidth;
+            if (estimated < minStripHeight) return minStripHeight;
+            if (estimated > maxStripHeight) return maxStripHeight;
+            return (int)estimated;
         }
     }
 }
