@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>PPTVideoEnhancePlugin</AssemblyName>
+    <RootNamespace>Ink_Canvas.Plugins.PPTVideoEnhance</RootNamespace>
+    <AssemblyVersion>1.1.5.0</AssemblyVersion>
+    <FileVersion>1.1.5.0</FileVersion>
+    <PlatformTarget>x86</PlatformTarget>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+    <DebugType>embedded</DebugType>
+    <Nullable>disable</Nullable>
+    <LangVersion>7.3</LangVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\</OutputPath>
+  </PropertyGroup>
+
+  <!--
+    开发时请把 HintPath 替换为本机上 Ink Canvas Ultra.exe 的输出路径。
+    例如：C:\path\to\Ink-Canvas-Ultra\Ink Canvas\bin\Debug\Ink Canvas Ultra.exe
+    插件复用宿主已加载的程序集（Private=false），因此除自身 DLL 外不打包任何额外依赖。
+  -->
+  <ItemGroup>
+    <Reference Include="Ink Canvas Ultra">
+      <HintPath>C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Debug\Ink Canvas Ultra.exe</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.Office.Interop.PowerPoint">
+      <HintPath>C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Debug\Microsoft.Office.Interop.PowerPoint.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Office">
+      <HintPath>C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Debug\Office.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Debug\Newtonsoft.Json.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+  </ItemGroup>
+
+</Project>

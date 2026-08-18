@@ -6,7 +6,7 @@
     "description": "为 Ink Canvas Ultra 提供视频元素的播放控制条（进度条、暂停/播放、音量）。选中视频元素时自动显示控制条。",
     "entryAssembly": "VideoControlsPlugin.dll",
     "entryClass": "Ink_Canvas.Plugins.VideoControls.VideoControlsPlugin",
-    "minHostVersion": "7.0.0",
+    "minHostVersion": "8.0.2",
     "entryPoints": [
         {
             "route": "video-insert",

@@ -1,0 +1,147 @@
+name: Package Plugins
+
+on:
+  # 手动触发
+  workflow_dispatch:
+  # 推送到 main 时自动打包（产物以 Artifact 形式提供，不写回仓库）
+  push:
+    branches: [main]
+    paths:
+      - '**/*.cs'
+      - '**/*.csproj'
+      - '**/plugin.icplugin'
+      - '.github/workflows/package-plugins.yml'
+  # 发布 Release 时把打包结果作为资产附到 Release
+  release:
+    types: [published]
+
+# release 事件需要把打包产物作为资产附到 Release，故授予 contents: write。
+# 本工作流任何步骤都不会 git commit/push 回仓库（push 事件仅上传 Artifact，不写回源码），
+# 因此"保留仓库里已打包好的插件"的约定仍然成立——CI 产物只进 build-output/ 与 Release 资产，不覆盖源码树中的 .icplugin。
+permissions:
+  contents: write
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  # 主程序（ICU）引用程序集所在目录，用于解析插件 csproj 中硬编码的 HintPath。
+  # CI 默认没有本机路径，需在仓库 Secrets 中配置 INKCANVAS_LIB_PATH 指向包含
+  # "Ink Canvas Ultra.exe" 及其依赖 DLL 的目录（可由 ICU 的 Release 构建产物提供）。
+  # 未配置时插件构建会失败（下面会记录警告并继续，不影响工作流其它步骤）。
+  INKCANVAS_LIB_PATH: ${{ secrets.INKCANVAS_LIB_PATH }}
+
+jobs:
+  package:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout plugin repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Setup .NET SDK (for dotnet build of net472 SDK-style projects)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build & package every plugin
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Continue"
+          $repoRoot = $PWD
+          $buildOutput = Join-Path $repoRoot "build-output"
+          if (Test-Path $buildOutput) { Remove-Item -Recurse -Force $buildOutput }
+          New-Item -ItemType Directory -Force -Path $buildOutput | Out-Null
+
+          # 发现所有“含 csproj 且含 plugin.icplugin 清单”的插件目录（排除 bin/obj/Templates/market）
+          $csprojs = Get-ChildItem -Path $repoRoot -Recurse -Filter *.csproj |
+            Where-Object {
+              $_.FullName -notmatch '\\(bin|obj)\\' -and
+              $_.FullName -notmatch '\\Templates\\' -and
+              $_.FullName -notmatch '\\market\\'
+            }
+
+          $built = 0
+          $failed = 0
+
+          foreach ($csproj in $csprojs) {
+            $dir = $csproj.DirectoryName
+            $manifest = Join-Path $dir "plugin.icplugin"
+            if (-not (Test-Path $manifest)) {
+              Write-Host "::notice::跳过 $($csproj.Name)（缺少 plugin.icplugin 清单）"
+              continue
+            }
+
+            Write-Host "==> 处理插件目录: $dir"
+
+            # 将 csproj 中硬编码的本机 HintPath 替换为 CI 可用的主程序引用目录
+            if ($env:INKCANVAS_LIB_PATH -and (Test-Path $env:INKCANVAS_LIB_PATH)) {
+              $txt = Get-Content $csproj.FullName -Raw
+              $txt = $txt -replace [regex]::Escape('C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Debug'), $env:INKCANVAS_LIB_PATH
+              $txt = $txt -replace [regex]::Escape('C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Release'), $env:INKCANVAS_LIB_PATH
+              Set-Content $csproj.FullName $txt
+              Write-Host "   已重写 HintPath -> $($env:INKCANVAS_LIB_PATH)"
+            } else {
+              Write-Host "::warning::未配置 INKCANVAS_LIB_PATH，插件可能因无法解析主程序引用而构建失败"
+            }
+
+            # 构建（Release）。构建失败仅记录，不中断其它插件
+            Push-Location $dir
+            try {
+              dotnet build $csproj.Name -c Release --nologo
+              if ($LASTEXITCODE -ne 0) { throw "dotnet build exit $LASTEXITCODE" }
+            } catch {
+              Write-Host "::warning::插件 $($csproj.Name) 构建失败: $_"
+              $failed++
+              Pop-Location
+              continue
+            }
+            Pop-Location
+
+            # 定位构建输出目录（OutputPath=bin\，可能带/不带 Release 子目录）
+            $bin = Join-Path $dir "bin"
+            $out = if (Test-Path (Join-Path $bin "Release")) { Join-Path $bin "Release" }
+                   elseif (Test-Path $bin) { $bin }
+                   elseif (Test-Path (Join-Path $bin "Debug")) { Join-Path $bin "Debug" }
+                   else { $null }
+
+            if (-not $out -or -not (Test-Path (Join-Path $out "$($csproj.BaseName).dll"))) {
+              Write-Host "::warning::插件 $($csproj.Name) 未找到构建产物 DLL，跳过打包"
+              $failed++
+              continue
+            }
+
+            # 暂存：manifest + 所有 DLL（含 NPOI / PdfiumViewer 等依赖），再压缩为 .icplugin
+            $stage = Join-Path $env:TEMP ("icplugin_" + [guid]::NewGuid().ToString())
+            New-Item -ItemType Directory -Force -Path $stage | Out-Null
+            Copy-Item -Force $manifest $stage
+            Get-ChildItem $out -Filter *.dll | Copy-Item -Destination $stage -Force
+
+            $pkgName = $csproj.Directory.Name + ".icplugin"
+            $zip = Join-Path $buildOutput $pkgName
+            if (Test-Path $zip) { Remove-Item -Force $zip }
+            Compress-Archive -Path (Join-Path $stage "*") -DestinationPath $zip -Force
+            Remove-Item -Recurse -Force $stage
+
+            Write-Host "::notice::已打包: $pkgName"
+            $built++
+          }
+
+          Write-Host "==> 完成：成功 $built 个，失败 $failed 个"
+          if ($failed -gt 0) {
+            Write-Host "::warning::有 $failed 个插件未能打包（多为 INKCANVAS_LIB_PATH 未配置或主程序引用缺失）"
+          }
+
+      - name: Upload build artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: plugins
+          path: build-output/*.icplugin
+          if-no-files-found: warn
+
+      - name: Attach to Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build-output/*.icplugin

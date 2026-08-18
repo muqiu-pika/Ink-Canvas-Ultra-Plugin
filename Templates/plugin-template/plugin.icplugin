@@ -6,7 +6,7 @@
     "description": "一个 Ink Canvas Ultra plugin 示例。请把此目录复制为新名称并修改 manifest 中的 id。",
     "entryAssembly": "ExamplePlugin.dll",
     "entryClass": "Ink_Canvas.Plugins.Example.ExamplePlugin",
-    "minHostVersion": "7.0.0",
+    "minHostVersion": "8.0.2",
     "entryPoints": [
         {
             "route": "settings:plugin-workshop",
