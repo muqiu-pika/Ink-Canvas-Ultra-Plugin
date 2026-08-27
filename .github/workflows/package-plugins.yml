@@ -78,7 +78,8 @@ jobs:
                 }
               }
               if (-not $msbuild) { throw "MSBuild not found" }
-              & $msbuild "Ink Canvas.csproj" /p:Configuration=Release /p:Platform=AnyCPU /m /nologo /v:m
+              # 全新 clone 没有 obj，必须先 Restore 再 Build，否则报“Assets file not found”。
+              & $msbuild "Ink Canvas.csproj" /t:Restore,Build /p:Configuration=Release /p:Platform=AnyCPU /m /nologo /v:m
               if ($LASTEXITCODE -ne 0) { throw "main build failed with exit $LASTEXITCODE" }
               $libOut = Join-Path (Get-Location) "bin\Release"
               if (Test-Path (Join-Path $libOut "Ink Canvas Ultra.exe")) {
