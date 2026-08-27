@@ -124,16 +124,16 @@ jobs:
             Write-Host "==> 处理插件目录: $dir"
 
             # 将 csproj 中硬编码的本机 HintPath 替换为 CI 可用的主程序引用目录。
-            # 原来的替换只匹配大写的 'C:\'，VideoControlsPlugin.csproj 用的是小写 'c:\'，且路径含本机账户，
-            # 导致 CI 上无法解析引用（IPlugin/IPluginHost 等找不到）。
-            # 改为大小写不敏感、并按输出的目录段（\Ink Canvas\bin\Debug 或 \Release）整体替换，与具体本机路径无关。
+            # 各插件的写法不统一：有的用 bin\Debug，有的用 bin\Release，有的用 obj\Debug，
+            # 大小写也可能不同（VideoControlsPlugin.csproj 用小写 'c:\'）。因此按“整个磁盘路径 +
+            # \Ink Canvas\(bin|obj)\(Debug|Release)\”整体匹配，替换为目标目录，与具体本机路径无关。
             $lib = $env:INKCANVAS_LIB_PATH
             if ($lib -and (Test-Path $lib)) {
               $txt = Get-Content $csproj.FullName -Raw
               $txt = [regex]::Replace(
                 $txt,
-                '(?i).*\\Ink Canvas\\(?:bin\\Debug|bin\\Release)',
-                { param($m) $lib })
+                '(?i)[a-z]:\\.*\\Ink Canvas\\(?:bin|obj)\\(?:Debug|Release)\\',
+                { param($m) ($lib + '\') })
               Set-Content -Path $csproj.FullName -Value $txt -Encoding UTF8
               Write-Host "   已重写 HintPath -> $lib"
             } else {
