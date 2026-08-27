@@ -35,12 +35,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout plugin repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 1
 
       - name: Setup .NET SDK (for dotnet build of net472 SDK-style projects)
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
@@ -187,12 +187,35 @@ jobs:
             Write-Host "::warning::有 $failed 个插件未能打包（多为 INKCANVAS_LIB_PATH 未配置或主程序引用缺失）"
           }
 
-      - name: Upload build artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
+      # 每个插件单独上传为独立工件（下载即得单个 .icplugin，不再合并成一个 zip）。
+      # 用 hashFiles 守卫：某插件构建失败时跳过对应上传。
+      - name: Upload pptvideoenhance artifact
+        if: hashFiles('build-output/pptvideoenhance.icplugin') != ''
+        uses: actions/upload-artifact@v5
         with:
-          name: plugins
-          path: build-output/*.icplugin
+          name: pptvideoenhance.icplugin
+          path: build-output/pptvideoenhance.icplugin
+          if-no-files-found: warn
+      - name: Upload hotkeycustomize artifact
+        if: hashFiles('build-output/hotkeycustomize.icplugin') != ''
+        uses: actions/upload-artifact@v5
+        with:
+          name: hotkeycustomize.icplugin
+          path: build-output/hotkeycustomize.icplugin
+          if-no-files-found: warn
+      - name: Upload documenttoimage artifact
+        if: hashFiles('build-output/documenttoimage.icplugin') != ''
+        uses: actions/upload-artifact@v5
+        with:
+          name: documenttoimage.icplugin
+          path: build-output/documenttoimage.icplugin
+          if-no-files-found: warn
+      - name: Upload videocontrols artifact
+        if: hashFiles('build-output/videocontrols.icplugin') != ''
+        uses: actions/upload-artifact@v5
+        with:
+          name: videocontrols.icplugin
+          path: build-output/videocontrols.icplugin
           if-no-files-found: warn
 
       - name: Attach to Release
