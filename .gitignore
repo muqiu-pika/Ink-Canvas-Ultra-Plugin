@@ -9,3 +9,5 @@
 
 # OS
 Thumbs.db
+/pack_log.txt
+/verify_log.txt
