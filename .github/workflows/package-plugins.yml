@@ -44,6 +44,54 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
+      - name: Build Ink Canvas Ultra (main program reference)
+        shell: pwsh
+        run: |
+          # 若外部已提供有效的主程序引用目录（Secret INKCANVAS_LIB_PATH），直接复用，跳过构建。
+          if ($env:INKCANVAS_LIB_PATH -and (Test-Path $env:INKCANVAS_LIB_PATH)) {
+            Write-Host "::notice::使用外部 INKCANVAS_LIB_PATH=$env:INKCANVAS_LIB_PATH，跳过主程序构建"
+            exit 0
+          }
+
+          # 插件 csproj 硬编码了本机路径，CI 上没有该路径的 exe，只能现场构建主程序。
+          # 主程序仓库在 https://github.com/muqiu-pika/Ink-Canvas-Ultra，构建后其 bin\Release 即作为插件引用目录。
+          # 注意：主程序使用了 COM 引用（IWshRuntimeLibrary/stdole），dotnet build（.NET Core MSBuild）会报
+          # MSB4803“不支持 ResolveComReference”，必须用 .NET Framework 版本 MSBuild（windows-latest 上随 VS 预装）。
+          $refRepo = Join-Path $env:TEMP "icu-reference"
+          if (Test-Path $refRepo) { Remove-Item -Recurse -Force $refRepo }
+          Write-Host "==> 未配置 INKCANVAS_LIB_PATH，克隆并构建 Ink Canvas Ultra 作为插件引用..."
+          try {
+            git clone --depth 1 --quiet "https://github.com/muqiu-pika/Ink-Canvas-Ultra.git" $refRepo
+            Push-Location (Join-Path $refRepo "Ink Canvas")
+            try {
+              # 定位 .NET Framework 版 MSBuild（可解析 COM 引用）。windows-latest 通常已在 PATH，
+              # 若没有则通过 vswhere 查找 VS 安装。
+              $msbuild = (Get-Command msbuild.exe -ErrorAction SilentlyContinue).Source
+              if (-not $msbuild) {
+                $vswhere = Join-Path ${env:ProgramFiles(x86)} "Microsoft Visual Studio\Installer\vswhere.exe"
+                if (Test-Path $vswhere) {
+                  $vsDir = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -property installationPath 2>$null
+                  if ($vsDir) {
+                    $c = Join-Path $vsDir "MSBuild\Current\Bin\MSBuild.exe"
+                    if (Test-Path $c) { $msbuild = $c }
+                  }
+                }
+              }
+              if (-not $msbuild) { throw "MSBuild not found" }
+              & $msbuild "Ink Canvas.csproj" /p:Configuration=Release /p:Platform=AnyCPU /m /nologo /v:m
+              if ($LASTEXITCODE -ne 0) { throw "main build failed with exit $LASTEXITCODE" }
+              $libOut = Join-Path (Get-Location) "bin\Release"
+              if (Test-Path (Join-Path $libOut "Ink Canvas Ultra.exe")) {
+                "INKCANVAS_LIB_PATH=$libOut" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+                Write-Host "::notice::主程序已构建，插件引用目录: $libOut"
+              } else {
+                Write-Host "::warning::主程序构建完成但未找到 exe，插件将因引用缺失而失败"
+              }
+            } finally { Pop-Location }
+          } catch {
+            Write-Host "::warning::主程序构建失败: $($_.Exception.Message)"
+          }
+
       - name: Build & package every plugin
         shell: pwsh
         run: |
@@ -74,13 +122,19 @@ jobs:
 
             Write-Host "==> 处理插件目录: $dir"
 
-            # 将 csproj 中硬编码的本机 HintPath 替换为 CI 可用的主程序引用目录
-            if ($env:INKCANVAS_LIB_PATH -and (Test-Path $env:INKCANVAS_LIB_PATH)) {
+            # 将 csproj 中硬编码的本机 HintPath 替换为 CI 可用的主程序引用目录。
+            # 原来的替换只匹配大写的 'C:\'，VideoControlsPlugin.csproj 用的是小写 'c:\'，且路径含本机账户，
+            # 导致 CI 上无法解析引用（IPlugin/IPluginHost 等找不到）。
+            # 改为大小写不敏感、并按输出的目录段（\Ink Canvas\bin\Debug 或 \Release）整体替换，与具体本机路径无关。
+            $lib = $env:INKCANVAS_LIB_PATH
+            if ($lib -and (Test-Path $lib)) {
               $txt = Get-Content $csproj.FullName -Raw
-              $txt = $txt -replace [regex]::Escape('C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Debug'), $env:INKCANVAS_LIB_PATH
-              $txt = $txt -replace [regex]::Escape('C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Release'), $env:INKCANVAS_LIB_PATH
-              Set-Content $csproj.FullName $txt
-              Write-Host "   已重写 HintPath -> $($env:INKCANVAS_LIB_PATH)"
+              $txt = [regex]::Replace(
+                $txt,
+                '(?i).*\\Ink Canvas\\(?:bin\\Debug|bin\\Release)',
+                { param($m) $lib })
+              Set-Content -Path $csproj.FullName -Value $txt -Encoding UTF8
+              Write-Host "   已重写 HintPath -> $lib"
             } else {
               Write-Host "::warning::未配置 INKCANVAS_LIB_PATH，插件可能因无法解析主程序引用而构建失败"
             }
