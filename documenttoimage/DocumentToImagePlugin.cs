@@ -42,7 +42,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             Description = "将 Word / Excel / PDF 文件转换为图片并添加到照片列表，支持本地转换缓存与同名修改检测（无需 Office）",
             EntryAssembly = "DocumentToImagePlugin.dll",
             EntryClass = "Ink_Canvas.Plugins.DocumentToImage.DocumentToImagePlugin",
-            MinHostVersion = "7.0.0"
+            MinHostVersion = "26.8.1"
         };
 
         public void Initialize(IPluginHost host)

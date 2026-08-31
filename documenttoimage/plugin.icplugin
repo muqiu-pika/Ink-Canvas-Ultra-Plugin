@@ -6,5 +6,5 @@
   "description": "将 Word / Excel / PDF 文件整份文档垂直拼接为一张长照片并添加到照片列表，支持本地转换缓存与同名修改检测，使用 NPOI 与 PdfiumViewer，无需安装 Microsoft Office。",
   "entryAssembly": "DocumentToImagePlugin.dll",
   "entryClass": "Ink_Canvas.Plugins.DocumentToImage.DocumentToImagePlugin",
-  "minHostVersion": "8.0.2"
+  "minHostVersion": "26.8.1"
 }

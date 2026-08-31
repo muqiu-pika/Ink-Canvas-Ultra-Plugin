@@ -1,6 +1,6 @@
 {
   "apiVersion": "1.2",
-  "lastUpdated": "2026-08-15T09:31:00Z",
+  "lastUpdated": "2026-08-31T02:48:52Z",
   "market": {
     "name": "Ink Canvas Ultra Plugin Market",
     "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin",
@@ -16,14 +16,14 @@
       "description": "将 Word / Excel / PDF 文件整份文档垂直拼接为一张长照片并添加到照片列表，支持本地转换缓存与同名修改检测，使用 NPOI 与 PdfiumViewer，无需安装 Microsoft Office。",
       "tags": ["document", "pdf", "word", "excel", "image"],
       "category": "productivity",
-      "minHostVersion": "8.0.1",
-      "size": 5325194,
+      "minHostVersion": "26.8.1",
+      "size": 5325196,
       "icon": "📄",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/documenttoimage.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/documenttoimage.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "1E781F574E68B0EDEE1F9DA1723D422121258F7857406D2671F563436EE3EA43"
+        "value": "8F7F458B2F44625D1F31E09C748256C0D4F50E18DC040E7EFFF8F8DB26E362C8"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/documenttoimage/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/documenttoimage",
@@ -39,13 +39,13 @@
       "tags": ["video", "media", "controls"],
       "category": "media",
       "minHostVersion": "7.0.0",
-      "size": 11936,
+      "size": 11937,
       "icon": "🎬",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/videocontrols.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/videocontrols.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "7F9F171B5067862FBB8E991CCD2C055154CEBD26510D61AA2D217753F24713F3"
+        "value": "31EDAA5B08F923428B068F9DD76DC9C043006E1397994D285D2475B4F4FD9085"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/videocontrols/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/videocontrols",
@@ -61,17 +61,61 @@
       "tags": ["video", "camera", "presenter"],
       "category": "media",
       "minHostVersion": "7.0.0",
-      "size": 9718,
+      "size": 9719,
       "icon": "📹",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/visualpresenter.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/visualpresenter.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "A1C68E215676E4D2F2C7D0513DF2C4AA584DAA4261CF3849DA1DACF62A21B437"
+        "value": "B1295785F029007516A326A0984E37C32000E7948200CAD5D8128404B18C8EA3"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/visualpresenter/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/visualpresenter",
       "releasedAt": "2026-07-27T12:00:00Z"
+    },
+    {
+      "id": "ink-canvas.hotkey-customizer",
+      "name": "自定义快捷键",
+      "version": "1.0.0",
+      "gitRef": "main",
+      "author": "muqiu",
+      "description": "自定义软件自带的快捷键。在插件工坊中点击插件上的「设置」图标，即可为每个内置动作重新绑定组合键；禁用或卸载本插件后恢复为软件默认按键。",
+      "tags": ["hotkey", "shortcut", "input"],
+      "category": "tools",
+      "minHostVersion": "26.8.1",
+      "size": 15657,
+      "icon": "⌨️",
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/hotkeycustomize.icplugin",
+      "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/hotkeycustomize.icplugin",
+      "checksum": {
+        "algorithm": "SHA256",
+        "value": "D090F321E6225A65CD587BC10E6562A754EE5F2765C18C624CF775671B6F574F"
+      },
+      "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/hotkeycustomize/changelog.md",
+      "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/hotkeycustomize",
+      "releasedAt": "2026-08-26T08:10:00Z"
+    },
+    {
+      "id": "ink-canvas.ppt-video-enhance",
+      "name": "PPT视频增强",
+      "version": "1.1.5",
+      "gitRef": "main",
+      "author": "muqiu",
+      "description": "放映 PPT / WPS 时自动识别幻灯片视频控件区域，鼠标移入视频即切换为鼠标/穿透模式（可直接操作播放），浮动栏显示保持不变；视频左下角提供透明笔/播放切换按钮，点击锁定批注或恢复自动。支持微软 PowerPoint 与 WPS 演示。",
+      "tags": ["ppt", "wps", "video", "slideshow"],
+      "category": "media",
+      "minHostVersion": "26.8.1",
+      "size": 25157,
+      "icon": "🎞️",
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/pptvideoenhance.icplugin",
+      "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/pptvideoenhance.icplugin",
+      "checksum": {
+        "algorithm": "SHA256",
+        "value": "7E5880D2F3EFDCDCF27EF4BA31E6E235959AB0942657FF0ABFCCAFE62BD77198"
+      },
+      "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/pptvideoenhance/changelog.md",
+      "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/pptvideoenhance",
+      "releasedAt": "2026-08-18T01:52:00Z"
     }
   ]
 }

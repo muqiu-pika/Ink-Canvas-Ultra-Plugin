@@ -52,7 +52,7 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             Description = "自定义软件自带的快捷键（在插件工坊点击「设置」图标展开配置）",
             EntryAssembly = "HotkeyCustomizerPlugin.dll",
             EntryClass = "Ink_Canvas.Plugins.HotkeyCustomizer.HotkeyCustomizerPlugin",
-            MinHostVersion = "8.0.2"
+            MinHostVersion = "26.8.1"
         };
 
         public void Initialize(IPluginHost host)

@@ -366,6 +366,24 @@ visualpresenter.icplugin（实为 ZIP）
 
 > 注意：plugin 程序集目标框架必须为 .NET Framework 4.7.2，且不应捆绑主程序已加载的 DLL 副本（详见 §6）。
 
+### 7.5 打包后必须同步市场元数据
+
+zip 内记录了文件时间戳，因此**重新打包必然改变 `.icplugin` 的字节数**。若 `market/v1/market.json`
+里的 `size` / `checksum` 不跟着更新，主程序插件工坊会判定文件被篡改而**拒绝安装**
+（表现为「文件大小校验失败」或「SHA256 校验失败」）。
+
+打包后运行一次即可自动重算（会同时更新 `market/v1/market.json` 与根目录 `plugins.json`）：
+
+```powershell
+python tools\update-market-metadata.py
+```
+
+- 只比对、不写入（适合提交前自检或 CI）：加 `--check`，存在不一致时退出码为 1
+- 脚本按"旧值精确替换"写回，保留文件原有排版与行尾，不会把整份 JSON 变成一大片 diff
+- 若仓库根目录存在尚未登记进目录的 `.icplugin`，脚本会一并提示
+
+`pptvideoenhance\pack2.ps1` 已在打包成功后自动调用该脚本，可作为其它插件打包脚本的参考。
+
 ---
 
 ## 8. 安全注意事项

@@ -6,5 +6,5 @@
   "description": "自定义软件自带的快捷键。在插件工坊中点击插件上的「设置」图标，即可为每个内置动作重新绑定组合键；禁用或卸载本插件后恢复为软件默认按键。",
   "entryAssembly": "HotkeyCustomizerPlugin.dll",
   "entryClass": "Ink_Canvas.Plugins.HotkeyCustomizer.HotkeyCustomizerPlugin",
-  "minHostVersion": "8.0.2"
+  "minHostVersion": "26.8.1"
 }
