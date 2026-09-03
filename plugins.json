@@ -1,6 +1,6 @@
 {
   "apiVersion": "1.2",
-  "lastUpdated": "2026-08-31T02:48:52Z",
+  "lastUpdated": "2026-09-03T12:40:40Z",
   "market": {
     "name": "Ink Canvas Ultra Plugin Market",
     "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin",
@@ -116,6 +116,28 @@
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/pptvideoenhance/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/pptvideoenhance",
       "releasedAt": "2026-08-18T01:52:00Z"
+    },
+    {
+      "id": "ink-canvas.toolbar-reorder",
+      "name": "工具栏按钮排序",
+      "version": "1.0.0",
+      "gitRef": "main",
+      "author": "muqiu",
+      "description": "在插件工坊设置面板中调整浮动工具栏 / 白板工具栏的按钮顺序。禁用或卸载本插件后恢复默认布局。",
+      "tags": ["toolbar", "customize", "ui"],
+      "category": "tools",
+      "minHostVersion": "26.9.2",
+      "size": 12585,
+      "icon": "🧰",
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/toolbarreorder.icplugin",
+      "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/toolbarreorder.icplugin",
+      "checksum": {
+        "algorithm": "SHA256",
+        "value": "6EC02A9A0EE43F91460D06167E84B01E1ECA6AAA697C2A6F540149D78664847B"
+      },
+      "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/toolbarreorder/changelog.md",
+      "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/toolbarreorder",
+      "releasedAt": "2026-09-03T12:40:40Z"
     }
   ]
 }

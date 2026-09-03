@@ -36,7 +36,7 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             Description = "自定义浮动工具栏 / 白板工具栏的按钮顺序（在插件工坊点击「设置」展开配置）",
             EntryAssembly = "ToolbarReorderPlugin.dll",
             EntryClass = "Ink_Canvas.Plugins.ToolbarReorder.ToolbarReorderPlugin",
-            MinHostVersion = "26.9.1"
+            MinHostVersion = "26.9.2"
         };
 
         public void Initialize(IPluginHost host)
