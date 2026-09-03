@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>ToolbarReorderPlugin</AssemblyName>
+    <RootNamespace>Ink_Canvas.Plugins.ToolbarReorder</RootNamespace>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Platforms>x64;AnyCPU</Platforms>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>embedded</DebugType>
+    <Nullable>disable</Nullable>
+    <LangVersion>7.3</LangVersion>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>bin\</OutputPath>
+  </PropertyGroup>
+
+  <!--
+    开发时把 HintPath 替换为本机上 Ink Canvas Ultra 主程序输出路径（含工具栏排序 API）。
+  -->
+  <ItemGroup>
+    <Reference Include="Ink Canvas Ultra">
+      <HintPath>c:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\obj\Debug\Ink Canvas Ultra.exe</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <!-- JavaScriptSerializer 用于读写简洁 JSON 配置，避免引入额外包 -->
+    <Reference Include="System.Web.Extensions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 插件清单与打包脚本 -->
+    <None Include="plugin.icplugin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="pack.ps1">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
