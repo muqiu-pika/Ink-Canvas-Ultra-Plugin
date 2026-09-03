@@ -76,7 +76,7 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
             {
                 Id = "ink-canvas.ppt-video-enhance",
                 Name = "PPT视频增强",
-                Version = "1.1.5",
+                Version = "1.1.6",
                 Author = "muqiu",
                 Description = "放映 PPT / WPS 时自动识别幻灯片视频控件区域，鼠标移入视频即切换为鼠标/穿透模式（可直接操作播放），浮动栏显示保持不变；视频左下角提供透明笔/播放切换按钮，点击锁定批注或恢复自动。支持微软 PowerPoint 与 WPS 演示。"
             };
@@ -213,7 +213,9 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
                 if (!_inputPassthrough)
                 {
                     ApplyInput(true);
-                    if (_settings.ShowNotifications)
+                    // 若浮动栏本就处于"鼠标"状态，进入视频区域对用户无实际变化，
+                    // 不弹"进入鼠标模式"提示，避免无意义提示。
+                    if (_settings.ShowNotifications && !IsHostInMouseMode())
                         _host.ShowNotification("已进入视频区域：鼠标模式（可直接操作视频）");
                 }
             }
@@ -233,7 +235,8 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
                         {
                             _pendingExitTick = 0;
                             ApplyInput(false);
-                            if (_settings.ShowNotifications)
+                            // 浮动栏本为鼠标状态时不提示"恢复批注"，避免无意义提示
+                            if (_settings.ShowNotifications && !IsHostInMouseMode())
                                 _host.ShowNotification("已离开视频区域：恢复批注输入");
                         }
                     }
@@ -241,7 +244,7 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
                     {
                         _pendingExitTick = 0;
                         ApplyInput(false);
-                        if (_settings.ShowNotifications)
+                        if (_settings.ShowNotifications && !IsHostInMouseMode())
                             _host.ShowNotification("已离开视频区域：恢复批注输入");
                     }
                 }
@@ -463,6 +466,17 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
         private static bool IsLeftButtonDown()
         {
             try { return (GetAsyncKeyState(0x01) & 0x8000) != 0; }
+            catch { return false; }
+        }
+
+        /// <summary>
+        /// 判断浮动栏当前是否为"鼠标"状态：宿主切换到鼠标模式时会把墨迹画布
+        /// EditingMode 置为 Select（笔模式为 Ink）。
+        /// 鼠标状态下"进入/离开视频区域"对用户无实际变化，应抑制相关提示。
+        /// </summary>
+        private bool IsHostInMouseMode()
+        {
+            try { return _inkCanvas != null && _inkCanvas.EditingMode == InkCanvasEditingMode.Select; }
             catch { return false; }
         }
 

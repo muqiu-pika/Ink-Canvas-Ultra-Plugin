@@ -1,7 +1,7 @@
 {
   "id": "ink-canvas.ppt-video-enhance",
   "name": "PPT视频增强",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "author": "muqiu",
   "description": "放映 PPT / WPS 时自动识别幻灯片视频控件区域，鼠标移入视频即切换为鼠标/穿透模式（可直接操作播放），浮动栏显示保持不变；视频左下角提供透明笔/播放切换按钮，点击锁定批注或恢复自动。支持微软 PowerPoint 与 WPS 演示。",
   "entryAssembly": "PPTVideoEnhancePlugin.dll",

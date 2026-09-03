@@ -98,20 +98,20 @@
     {
       "id": "ink-canvas.ppt-video-enhance",
       "name": "PPT视频增强",
-      "version": "1.1.5",
+      "version": "1.1.6",
       "gitRef": "main",
       "author": "muqiu",
       "description": "放映 PPT / WPS 时自动识别幻灯片视频控件区域，鼠标移入视频即切换为鼠标/穿透模式（可直接操作播放），浮动栏显示保持不变；视频左下角提供透明笔/播放切换按钮，点击锁定批注或恢复自动。支持微软 PowerPoint 与 WPS 演示。",
       "tags": ["ppt", "wps", "video", "slideshow"],
       "category": "media",
       "minHostVersion": "26.8.1",
-      "size": 25157,
+      "size": 25390,
       "icon": "🎞️",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/pptvideoenhance.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/pptvideoenhance.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "7E5880D2F3EFDCDCF27EF4BA31E6E235959AB0942657FF0ABFCCAFE62BD77198"
+        "value": "84B1DFF7A619C96BA7360E7C6C2E79A7B69BE6094CEC151C3715521706616917"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/pptvideoenhance/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/pptvideoenhance",
