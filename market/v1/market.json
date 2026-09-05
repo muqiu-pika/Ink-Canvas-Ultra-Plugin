@@ -1,6 +1,6 @@
 {
   "apiVersion": "1.2",
-  "lastUpdated": "2026-09-03T12:40:40Z",
+  "lastUpdated": "2026-09-05T10:07:16Z",
   "market": {
     "name": "Ink Canvas Ultra Plugin Market",
     "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin",
@@ -76,20 +76,20 @@
     {
       "id": "ink-canvas.hotkey-customizer",
       "name": "自定义快捷键",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "gitRef": "main",
       "author": "muqiu",
       "description": "自定义软件自带的快捷键。在插件工坊中点击插件上的「设置」图标，即可为每个内置动作重新绑定组合键；禁用或卸载本插件后恢复为软件默认按键。",
       "tags": ["hotkey", "shortcut", "input"],
       "category": "tools",
       "minHostVersion": "26.8.1",
-      "size": 15657,
+      "size": 15655,
       "icon": "⌨️",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/hotkeycustomize.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/hotkeycustomize.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "D090F321E6225A65CD587BC10E6562A754EE5F2765C18C624CF775671B6F574F"
+        "value": "5F55E9E504909B3C5191168D46C9119132F9627263259E17533C3631158CAE4E"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/hotkeycustomize/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/hotkeycustomize",
