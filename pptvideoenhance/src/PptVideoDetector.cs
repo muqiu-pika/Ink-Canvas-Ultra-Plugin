@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows.Threading;
@@ -74,6 +75,11 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
         private void Refresh()
         {
             if (!_running) return;
+
+            // 若 PowerPoint / WPS 演示进程均未运行，直接跳过 COM 探测，
+            // 避免每 700ms 调用 Marshal.GetActiveObject 抛 COMException 刷屏调试输出。
+            if (!IsPresentationProcessRunning()) return;
+
             try
             {
                 var regions = new List<VideoRegion>();
@@ -95,6 +101,15 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
             {
                 // 任何异常都不应中断 COM 轮询线程
             }
+        }
+
+        private static bool IsPresentationProcessRunning()
+        {
+            if (Process.GetProcessesByName("POWERPNT").Length > 0) return true;
+            if (Process.GetProcessesByName("wpp").Length > 0) return true;
+            if (Process.GetProcessesByName("et").Length > 0) return true;
+            if (Process.GetProcessesByName("KWPP").Length > 0) return true;
+            return false;
         }
 
         // ===== PowerPoint =====

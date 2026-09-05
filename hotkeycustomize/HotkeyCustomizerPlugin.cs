@@ -47,7 +47,7 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
         {
             Id = "ink-canvas.hotkey-customizer",
             Name = "自定义快捷键",
-            Version = "1.0.0",
+            Version = "1.0.1",
             Author = "muqiu",
             Description = "自定义软件自带的快捷键（在插件工坊点击「设置」图标展开配置）",
             EntryAssembly = "HotkeyCustomizerPlugin.dll",
