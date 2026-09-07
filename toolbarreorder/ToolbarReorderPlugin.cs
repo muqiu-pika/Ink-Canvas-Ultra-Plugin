@@ -26,16 +26,14 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
         private readonly Dictionary<string, List<string>> _order = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
         // placement -> 首次记录的默认顺序（跨重启有效，供「恢复默认」使用）
         private readonly Dictionary<string, List<string>> _defaults = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
-        // placement -> 被隐藏（已删除）的按钮 id 列表（持久化，跨重启由 ApplySavedOrder 重新应用）
-        private readonly Dictionary<string, List<string>> _hidden = new Dictionary<string, List<string>>(StringComparer.OrdinalIgnoreCase);
 
         public PluginManifest Manifest { get; } = new PluginManifest
         {
             Id = "ink-canvas.toolbar-reorder",
             Name = "工具栏按钮排序",
-            Version = "1.0.1",
+            Version = "1.0.0",
             Author = "muqiu",
-            Description = "自定义浮动工具栏 / 白板工具栏的按钮顺序，并支持删除按钮（「工具」按钮除外）（在插件工坊点击「设置」展开配置）",
+            Description = "自定义浮动工具栏 / 白板工具栏的按钮顺序（在插件工坊点击「设置」展开配置）",
             EntryAssembly = "ToolbarReorderPlugin.dll",
             EntryClass = "Ink_Canvas.Plugins.ToolbarReorder.ToolbarReorderPlugin",
             MinHostVersion = "26.9.2"
@@ -109,7 +107,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
                 var list = serializer.Deserialize<List<ToolbarConfigEntry>>(File.ReadAllText(ConfigPath));
                 _order.Clear();
                 _defaults.Clear();
-                _hidden.Clear();
                 if (list != null)
                 {
                     foreach (var item in list)
@@ -117,7 +114,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
                         if (string.IsNullOrWhiteSpace(item.Placement)) continue;
                         if (item.OrderedIds != null) _order[item.Placement] = item.OrderedIds;
                         if (item.DefaultIds != null) _defaults[item.Placement] = item.DefaultIds;
-                        if (item.HiddenIds != null) _hidden[item.Placement] = item.HiddenIds;
                     }
                 }
             }
@@ -133,13 +129,11 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
                 foreach (var kv in _order)
                 {
                     _defaults.TryGetValue(kv.Key, out var def);
-                    _hidden.TryGetValue(kv.Key, out var hid);
                     list.Add(new ToolbarConfigEntry
                     {
                         Placement = kv.Key,
                         OrderedIds = kv.Value.ToList(),
-                        DefaultIds = def == null ? null : def.ToList(),
-                        HiddenIds = hid == null ? null : hid.ToList()
+                        DefaultIds = def == null ? null : def.ToList()
                     });
                 }
                 if (!Directory.Exists(_pluginDirectory)) Directory.CreateDirectory(_pluginDirectory);
@@ -153,7 +147,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             public string Placement { get; set; }
             public List<string> OrderedIds { get; set; }
             public List<string> DefaultIds { get; set; }
-            public List<string> HiddenIds { get; set; }
         }
 
         /// <summary>返回某分组的默认顺序（优先用首次记录的默认，否则回退到组内默认顺序）。</summary>
@@ -170,14 +163,7 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
         {
             foreach (var kv in _order)
             {
-                var placement = kv.Key;
-                try
-                {
-                    if (_hidden.TryGetValue(placement, out var h) && h != null && h.Count > 0)
-                        _host?.SetToolbarHidden(placement, h);
-                }
-                catch { }
-                try { _host?.ApplyToolbarOrder(placement, kv.Value); } catch { }
+                try { _host?.ApplyToolbarOrder(kv.Key, kv.Value); } catch { }
             }
         }
 
@@ -239,8 +225,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             var resetBtn = MakeActionButton("恢复默认", () =>
             {
                 var defaults = DefaultsFor(placement, group);
-                _hidden[placement] = new List<string>();           // 恢复默认时取消所有隐藏
-                try { _host?.SetToolbarHidden(placement, _hidden[placement]); } catch { }
                 try { _host?.ApplyToolbarOrder(placement, defaults); } catch { }
                 _order[placement] = defaults.ToList();
                 SaveConfig();
@@ -277,7 +261,7 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
         private void RenderRow(Border row, ToolbarReorderGroup group, string placement, ToolbarReorderItem item)
         {
             var grid = new Grid();
-            for (int i = 0; i < 5; i++)
+            for (int i = 0; i < 4; i++)
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = i == 0 ? new GridLength(1, GridUnitType.Star) : GridLength.Auto });
 
             var nameText = new TextBlock
@@ -320,14 +304,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             });
             Grid.SetColumn(downBtn, 3);
             grid.Children.Add(downBtn);
-
-            // 删除按钮（「工具」按钮受保护，不可删除）
-            var delBtn = MakeActionButton(
-                IsToolbarProtected(item.Id, item.DisplayName) ? "保留" : "删除",
-                () => DeleteItem(placement, item.Id, row));
-            if (IsToolbarProtected(item.Id, item.DisplayName)) delBtn.IsEnabled = false;
-            Grid.SetColumn(delBtn, 4);
-            grid.Children.Add(delBtn);
 
             row.Child = grid;
         }
@@ -398,48 +374,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             var btn = new Button { Content = text, Margin = new Thickness(6, 0, 0, 0), Padding = new Thickness(8, 2, 8, 2) };
             btn.Click += (s, e) => onClick();
             return btn;
-        }
-
-        /// <summary>「工具」按钮（id = SymbolIconTools_Click / 名称「工具」）受保护，不允许被删除。</summary>
-        private static bool IsToolbarProtected(string id, string displayName)
-        {
-            if (string.Equals(id, "SymbolIconTools_Click", StringComparison.OrdinalIgnoreCase)) return true;
-            if (string.Equals(displayName, "工具", StringComparison.Ordinal)) return true;
-            return false;
-        }
-
-        private List<string> HiddenListFor(string placement)
-        {
-            if (_hidden.TryGetValue(placement, out var h) && h != null) return h;
-            var created = new List<string>();
-            _hidden[placement] = created;
-            return created;
-        }
-
-        /// <summary>
-        /// 删除（隐藏）一个工具栏按钮：弹出二次确认，确认后从可见顺序移除并加入隐藏集合，
-        /// 立即应用到主界面并持久化；「工具」按钮不会走到这里（UI 不提供删除入口）。
-        /// </summary>
-        private void DeleteItem(string placement, string id, Border row)
-        {
-            var confirm = System.Windows.MessageBox.Show(
-                "确定要删除工具栏按钮「" + (id ?? "") + "」吗？\n删除后可在本组「恢复默认」中找回。",
-                "删除工具栏按钮",
-                System.Windows.MessageBoxButton.YesNo,
-                System.Windows.MessageBoxImage.Warning);
-            if (confirm != System.Windows.MessageBoxResult.Yes) return;
-
-            if (IsToolbarProtected(id, null)) return;
-
-            if (_order.TryGetValue(placement, out var list) && list != null)
-                list.Remove(id);
-            var hidden = HiddenListFor(placement);
-            if (!hidden.Contains(id)) hidden.Add(id);
-
-            try { _host?.SetToolbarHidden(placement, hidden); } catch { }
-            try { if (_order.TryGetValue(placement, out var v) && v != null) _host?.ApplyToolbarOrder(placement, v); } catch { }
-            SaveConfig();
-            RebuildAfterMove(row);
         }
 
         private static Brush TryBrush(string resourceKey, Brush fallback)
