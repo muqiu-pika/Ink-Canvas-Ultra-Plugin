@@ -191,35 +191,35 @@ jobs:
       # 用 hashFiles 守卫：某插件构建失败时跳过对应上传。
       - name: Upload pptvideoenhance artifact
         if: hashFiles('build-output/pptvideoenhance.icplugin') != ''
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: pptvideoenhance.icplugin
           path: build-output/pptvideoenhance.icplugin
           if-no-files-found: warn
       - name: Upload hotkeycustomize artifact
         if: hashFiles('build-output/hotkeycustomize.icplugin') != ''
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: hotkeycustomize.icplugin
           path: build-output/hotkeycustomize.icplugin
           if-no-files-found: warn
       - name: Upload documenttoimage artifact
         if: hashFiles('build-output/documenttoimage.icplugin') != ''
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: documenttoimage.icplugin
           path: build-output/documenttoimage.icplugin
           if-no-files-found: warn
       - name: Upload videocontrols artifact
         if: hashFiles('build-output/videocontrols.icplugin') != ''
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: videocontrols.icplugin
           path: build-output/videocontrols.icplugin
           if-no-files-found: warn
       - name: Upload toolbarreorder artifact
         if: hashFiles('build-output/toolbarreorder.icplugin') != ''
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: toolbarreorder.icplugin
           path: build-output/toolbarreorder.icplugin
