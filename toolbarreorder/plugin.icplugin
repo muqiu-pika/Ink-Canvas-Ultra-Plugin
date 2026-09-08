@@ -1,10 +1,10 @@
 {
   "id": "ink-canvas.toolbar-reorder",
   "name": "工具栏按钮排序",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "author": "muqiu",
   "description": "自定义浮动工具栏 / 白板工具栏的按钮顺序，支持删除按钮（「工具」按钮除外）；在插件工坊点击「设置」展开配置；禁用或卸载本插件后恢复默认布局。",
   "entryAssembly": "ToolbarReorderPlugin.dll",
   "entryClass": "Ink_Canvas.Plugins.ToolbarReorder.ToolbarReorderPlugin",
-  "minHostVersion": "26.9.2"
+  "minHostVersion": "26.9.5"
 }

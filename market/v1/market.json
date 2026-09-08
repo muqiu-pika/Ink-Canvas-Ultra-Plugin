@@ -1,6 +1,6 @@
 {
   "apiVersion": "1.2",
-  "lastUpdated": "2026-09-07T12:00:00Z",
+  "lastUpdated": "2026-09-08T06:52:36Z",
   "market": {
     "name": "Ink Canvas Ultra Plugin Market",
     "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin",
@@ -120,24 +120,24 @@
     {
       "id": "ink-canvas.toolbar-reorder",
       "name": "工具栏按钮排序",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "gitRef": "main",
       "author": "muqiu",
       "description": "自定义浮动工具栏 / 白板工具栏的按钮顺序，支持删除按钮（「工具」按钮除外）；在插件工坊点击「设置」展开配置；禁用或卸载本插件后恢复默认布局。",
       "tags": ["toolbar", "customize", "ui"],
       "category": "tools",
-      "minHostVersion": "26.9.2",
-      "size": 13648,
+      "minHostVersion": "26.9.5",
+      "size": 13838,
       "icon": "🧰",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/toolbarreorder.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/toolbarreorder.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "73EF5E14EE18F100E9486D75B78F753771730843089C2C700A270191261DB11F"
+        "value": "CCBBE5F0B9F54355EE22C8E7F8CBCA9E6219D36A25715AE834196750E0822280"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/toolbarreorder/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/toolbarreorder",
-      "releasedAt": "2026-09-07T12:00:00Z"
+      "releasedAt": "2026-09-08T06:52:36Z"
     }
   ]
 }

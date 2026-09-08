@@ -5,8 +5,8 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>ToolbarReorderPlugin</AssemblyName>
     <RootNamespace>Ink_Canvas.Plugins.ToolbarReorder</RootNamespace>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.2.0</AssemblyVersion>
+    <FileVersion>1.0.2.0</FileVersion>
     <Platforms>x64;AnyCPU</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>embedded</DebugType>

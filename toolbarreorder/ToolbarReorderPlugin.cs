@@ -34,12 +34,12 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
         {
             Id = "ink-canvas.toolbar-reorder",
             Name = "工具栏按钮排序",
-            Version = "1.0.1",
+            Version = "1.0.2",
             Author = "muqiu",
             Description = "自定义浮动工具栏 / 白板工具栏的按钮顺序，并支持删除按钮（「工具」按钮除外）（在插件工坊点击「设置」展开配置）",
             EntryAssembly = "ToolbarReorderPlugin.dll",
             EntryClass = "Ink_Canvas.Plugins.ToolbarReorder.ToolbarReorderPlugin",
-            MinHostVersion = "26.9.2"
+            MinHostVersion = "26.9.5"
         };
 
         public void Initialize(IPluginHost host)
