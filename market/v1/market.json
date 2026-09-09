@@ -1,6 +1,6 @@
 {
   "apiVersion": "1.2",
-  "lastUpdated": "2026-09-08T06:52:36Z",
+  "lastUpdated": "2026-09-09T09:32:00Z",
   "market": {
     "name": "Ink Canvas Ultra Plugin Market",
     "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin",
@@ -138,6 +138,28 @@
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/toolbarreorder/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/toolbarreorder",
       "releasedAt": "2026-09-08T06:52:36Z"
+    },
+    {
+      "id": "ink-canvas.frame-toggle",
+      "name": "窗口边框开关",
+      "version": "1.0.0",
+      "gitRef": "main",
+      "author": "muqiu",
+      "description": "控制 ICU 各功能窗口是否显示 Windows 原生边框（标题栏 + 外框）。在插件工坊「设置」中可一键总开关，也可为每个窗口单独指定；仅作用于原本带边框的窗口，不影响全屏画板与截图遮罩，隐藏后仍可用 Alt+Space 调出系统菜单。",
+      "tags": ["window", "frame", "ui"],
+      "category": "tools",
+      "minHostVersion": "26.9.5",
+      "size": 14571,
+      "icon": "🪟",
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/frametoggle.icplugin",
+      "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/frametoggle.icplugin",
+      "checksum": {
+        "algorithm": "SHA256",
+        "value": "058E83495962FEC6D24620FAE0AFEF98413F97209A39922458D2B83A180BAA95"
+      },
+      "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/frametoggle/changelog.md",
+      "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/frametoggle",
+      "releasedAt": "2026-09-09T09:32:00Z"
     }
   ]
 }

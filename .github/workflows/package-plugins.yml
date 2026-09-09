@@ -224,6 +224,13 @@ jobs:
           name: toolbarreorder.icplugin
           path: build-output/toolbarreorder.icplugin
           if-no-files-found: warn
+      - name: Upload frametoggle artifact
+        if: hashFiles('build-output/frametoggle.icplugin') != ''
+        uses: actions/upload-artifact@v6
+        with:
+          name: frametoggle.icplugin
+          path: build-output/frametoggle.icplugin
+          if-no-files-found: warn
 
       - name: Attach to Release
         if: github.event_name == 'release'

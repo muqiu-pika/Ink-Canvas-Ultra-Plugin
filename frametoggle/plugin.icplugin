@@ -1,0 +1,10 @@
+﻿{
+  "id": "ink-canvas.frame-toggle",
+  "name": "窗口边框开关",
+  "version": "1.0.0",
+  "author": "muqiu",
+  "description": "控制 ICU 各功能窗口是否显示 Windows 原生边框（标题栏 + 外框）。在插件工坊「设置」中可一键总开关，也可为每个窗口单独指定；仅作用于原本带边框的窗口，不影响全屏画板与截图遮罩，隐藏后仍可用 Alt+Space 调出系统菜单。",
+  "entryAssembly": "FrameTogglePlugin.dll",
+  "entryClass": "Ink_Canvas.Plugins.FrameToggle.FrameTogglePlugin",
+  "minHostVersion": "26.9.5"
+}
