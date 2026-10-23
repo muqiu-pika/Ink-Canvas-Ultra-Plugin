@@ -58,12 +58,12 @@ namespace Ink_Canvas.Plugins.FrameToggle
         {
             Id = "ink-canvas.frame-toggle",
             Name = "窗口边框开关",
-            Version = "1.0.0",
+            Version = "1.0.1",
             Author = "muqiu",
             Description = "控制 ICU 各功能窗口是否显示 Windows 原生边框（标题栏 + 外框）。在插件工坊「设置」中可一键总开关，也可为每个窗口单独指定；仅作用于原本带边框的窗口，不影响全屏画板与截图遮罩，隐藏后仍可用 Alt+Space 调出系统菜单。",
             EntryAssembly = "FrameTogglePlugin.dll",
             EntryClass = "Ink_Canvas.Plugins.FrameToggle.FrameTogglePlugin",
-            MinHostVersion = "26.9.5"
+            MinHostVersion = "26.10.6"
         };
 
         // ===== Win32 =====
@@ -124,6 +124,7 @@ namespace Ink_Canvas.Plugins.FrameToggle
                 { "OperatingGuideWindow", "快捷键指南" },
                 { "YesOrNoNotificationWindow", "确认提示框" },
                 { "ScreenshotInsertOptionWindow", "截图插入选项" },
+                { "PenColorsPluginPromptWindow", "画笔颜色插件安装提示" },
             };
 
         /// <summary>
@@ -145,6 +146,16 @@ namespace Ink_Canvas.Plugins.FrameToggle
             public string Display;
             /// <summary>设置项 key：用 @ 前缀与类型名区分开。</summary>
             public string Key => "@" + Keyword;
+        }
+
+        /// <summary>「自定义画笔颜色」插件的安装提示窗类型名（见宿主 PenColorsPluginPromptWindow）</summary>
+        private const string PenColorsPluginPromptTypeName = "PenColorsPluginPromptWindow";
+
+        /// <summary>「自定义画笔颜色」插件是否已安装（决定其提示窗边框开关项是否显示）</summary>
+        private bool IsPenColorsPluginInstalled()
+        {
+            try { return _host != null && _host.IsPluginInstalled("ink-canvas.pen-colors"); }
+            catch { return false; }
         }
 
         /// <summary>
@@ -465,6 +476,13 @@ namespace Ink_Canvas.Plugins.FrameToggle
             foreach (var k in DisplayNames.Keys) names.Add(k);
             foreach (var k in _discovered) if (!names.Contains(k, StringComparer.OrdinalIgnoreCase)) names.Add(k);
             names.RemoveAll(n => ExcludedTypes.Contains(n));
+            // 「自定义画笔颜色」插件未安装时，不显示其安装提示窗的边框开关项
+            // （该提示窗只在未安装插件时出现，属于一次性引导；安装后窗口不再出现，
+            //  但已安装的用户若禁用/卸载插件后再次看到该提示，仍可在此调整其边框）
+            if (!IsPenColorsPluginInstalled())
+            {
+                names.RemoveAll(n => string.Equals(n, PenColorsPluginPromptTypeName, StringComparison.OrdinalIgnoreCase));
+            }
             names.Sort(StringComparer.OrdinalIgnoreCase);
 
             if (names.Count == 0)

@@ -22,7 +22,7 @@
   -->
   <ItemGroup>
     <Reference Include="Ink Canvas Ultra">
-      <HintPath>c:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Release\Ink Canvas Ultra.exe</HintPath>
+      <HintPath>D:\AI\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Release\Ink Canvas Ultra.exe</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="ReachFramework" />

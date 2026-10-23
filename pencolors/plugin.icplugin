@@ -1,0 +1,10 @@
+﻿{
+  "id": "ink-canvas.pen-colors",
+  "name": "自定义画笔颜色",
+  "version": "1.0.0",
+  "author": "muqiu",
+  "description": "在「墨迹选项」中鼠标右键点击、或触摸屏长按某个颜色色块，即可自定义该颜色（9 个普通色 + 6 个荧光笔色），并可指定启动时的默认画笔颜色。不安装本插件时软件内置颜色照常可用；插件被禁用或卸载后颜色自动恢复为内置默认。",
+  "entryAssembly": "PenColorsPlugin.dll",
+  "entryClass": "Ink_Canvas.Plugins.PenColors.PenColorsPlugin",
+  "minHostVersion": "26.10.6"
+}

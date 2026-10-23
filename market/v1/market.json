@@ -1,6 +1,6 @@
 {
   "apiVersion": "1.2",
-  "lastUpdated": "2026-09-09T09:32:00Z",
+  "lastUpdated": "2026-10-23T13:11:10Z",
   "market": {
     "name": "Ink Canvas Ultra Plugin Market",
     "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin",
@@ -142,24 +142,46 @@
     {
       "id": "ink-canvas.frame-toggle",
       "name": "窗口边框开关",
-      "version": "1.0.0",
+      "version": "1.0.1",
       "gitRef": "main",
       "author": "muqiu",
-      "description": "控制 ICU 各功能窗口是否显示 Windows 原生边框（标题栏 + 外框）。在插件工坊「设置」中可一键总开关，也可为每个窗口单独指定；仅作用于原本带边框的窗口，不影响全屏画板与截图遮罩，隐藏后仍可用 Alt+Space 调出系统菜单。",
+      "description": "控制 ICU 各功能窗口是否显示 Windows 原生边框（标题栏 + 外框）。在插件工坊「设置」中可一键总开关，也可为每个窗口单独指定；仅作用于原本带边框的窗口，不影响全屏画板与截图遮罩，隐藏后仍可用 Alt+Space 调出系统菜单。新增「画笔颜色插件安装提示」窗的边框开关（仅当安装了「自定义画笔颜色」插件时显示该项）。",
       "tags": ["window", "frame", "ui"],
       "category": "tools",
-      "minHostVersion": "26.9.5",
-      "size": 14571,
+      "minHostVersion": "26.10.6",
+      "size": 14774,
       "icon": "🪟",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/frametoggle.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/frametoggle.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "058E83495962FEC6D24620FAE0AFEF98413F97209A39922458D2B83A180BAA95"
+        "value": "F85C5ABCF6A6300B2F5D3E0BE15395833CC467DC28B6E372DF4C689F69273066"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/frametoggle/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/frametoggle",
-      "releasedAt": "2026-09-09T09:32:00Z"
+      "releasedAt": "2026-10-23T18:30:00Z"
+    },
+    {
+      "id": "ink-canvas.pen-colors",
+      "name": "自定义画笔颜色",
+      "version": "1.0.0",
+      "gitRef": "main",
+      "author": "muqiu",
+      "description": "在「墨迹选项」中鼠标右键点击、或触摸屏长按某个颜色色块，即可自定义该颜色（9 个普通色 + 6 个荧光笔色），并可指定启动时的默认画笔颜色。不安装本插件时软件内置颜色照常可用；插件被禁用或卸载后颜色自动恢复为内置默认。",
+      "tags": ["color", "pen", "palette", "ui"],
+      "category": "tools",
+      "minHostVersion": "26.10.6",
+      "size": 15858,
+      "icon": "🎨",
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/pencolors.icplugin",
+      "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/pencolors.icplugin",
+      "checksum": {
+        "algorithm": "SHA256",
+        "value": "28B302D8734F8C1ACEA89C98F32960BE0AEAB449A35A430FAB012F61EF5AFF5A"
+      },
+      "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/pencolors/changelog.md",
+      "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/pencolors",
+      "releasedAt": "2026-10-21T19:20:00Z"
     }
   ]
 }

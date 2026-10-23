@@ -242,21 +242,29 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                     return;
                 }
 
-                // 逐块加载、传给主程序、释放，避免所有分块同时驻留内存导致 OOM
+                // 逐块加载、传给主程序、释放，避免所有分块同时驻留内存导致 OOM。
+                // 每块用一次独立的 Dispatcher.Invoke 同步调度：块与块之间 UI 线程可回到消息
+                // 循环处理输入、渲染与进度窗口动画。原先把整个 for 循环包在一个 Invoke 里，
+                // 大文档（如 80+ 页 PDF）会在 UI 线程连续做几十次图片解码 + PNG 落盘 +
+                // 照片列表重建（数分钟），表现为界面彻底卡死、只能重启电脑。
                 int totalChunks = pageFiles.Count;
-                _host?.MainWindow?.Dispatcher.Invoke(() =>
-                {
-                    for (int i = 0; i < pageFiles.Count; i++)
-                    {
-                        string chunkFilePath = pageFiles.Count == 1
-                            ? filePath
-                            : $"{filePath}#{i}";
+                var host = _host;
+                var mainWindow = host?.MainWindow;
 
+                for (int i = 0; i < totalChunks; i++)
+                {
+                    string chunkFilePath = totalChunks == 1
+                        ? filePath
+                        : $"{filePath}#{i}";
+                    int chunkIndex = i;
+
+                    mainWindow?.Dispatcher.Invoke(() =>
+                    {
                         // 逐块加载，每块仅有一个 BitmapImage 驻留
-                        BitmapImage chunkImage = ImageConcatenator.LoadBitmapImageFromFile(pageFiles[i]);
+                        BitmapImage chunkImage = ImageConcatenator.LoadBitmapImageFromFile(pageFiles[chunkIndex]);
                         try
                         {
-                            _host?.AddCapturedPhoto(chunkImage, chunkFilePath);
+                            host?.AddCapturedPhoto(chunkImage, chunkFilePath);
                         }
                         finally
                         {
@@ -264,8 +272,21 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                             // 此处再主动释放 BitmapImage 引用，帮助 GC 回收
                             chunkImage = null;
                         }
-                    }
+                    });
 
+                    progress?.Report(new ConversionProgress
+                    {
+                        FileName = Path.GetFileName(filePath),
+                        Current = i + 1,
+                        Total = totalChunks,
+                        Message = totalChunks > 1
+                            ? $"正在添加照片分块 {i + 1}/{totalChunks}..."
+                            : "正在添加照片..."
+                    });
+                }
+
+                mainWindow?.Dispatcher.Invoke(() =>
+                {
                     if (totalChunks == 1)
                     {
                         progressWindow?.SetDone($"已生成 1 张文档照片");
@@ -424,17 +445,20 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                 if (pageFiles == null || pageFiles.Count == 0)
                     return;
 
-                _host?.MainWindow?.Dispatcher.Invoke(() =>
+                // 逐块更新：分块照片的来源标识为「文档路径#块序号」，与转换时保持一致。
+                // 与 ConvertAndAddAsync 相同，每块一次独立的 Dispatcher.Invoke，
+                // 避免大文档把 UI 线程连续占满数分钟导致界面卡死。
+                int totalChunks = pageFiles.Count;
+                for (int i = 0; i < totalChunks; i++)
                 {
-                    // 逐块更新：分块照片的来源标识为「文档路径#块序号」，与转换时保持一致。
-                    // 逐块加载、更新、释放，避免所有分块同时驻留内存导致 OOM。
-                    for (int i = 0; i < pageFiles.Count; i++)
-                    {
-                        string chunkFilePath = pageFiles.Count == 1
-                            ? filePath
-                            : $"{filePath}#{i}";
+                    string chunkFilePath = totalChunks == 1
+                        ? filePath
+                        : $"{filePath}#{i}";
+                    int chunkIndex = i;
 
-                        BitmapImage chunkImage = ImageConcatenator.LoadBitmapImageFromFile(pageFiles[i]);
+                    _host?.MainWindow?.Dispatcher.Invoke(() =>
+                    {
+                        BitmapImage chunkImage = ImageConcatenator.LoadBitmapImageFromFile(pageFiles[chunkIndex]);
                         try
                         {
                             _host?.UpdateCapturedPhoto(chunkFilePath, chunkImage);
@@ -444,7 +468,11 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                         {
                             chunkImage = null;
                         }
-                    }
+                    });
+                }
+
+                _host?.MainWindow?.Dispatcher.Invoke(() =>
+                {
                     _host?.ShowNotification("文档已更新，已重新生成照片");
                 });
             }

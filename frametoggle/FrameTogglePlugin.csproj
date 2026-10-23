@@ -5,8 +5,8 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>FrameTogglePlugin</AssemblyName>
     <RootNamespace>Ink_Canvas.Plugins.FrameToggle</RootNamespace>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.0.1.0</AssemblyVersion>
+    <FileVersion>1.0.1.0</FileVersion>
     <Platforms>x64;AnyCPU</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>embedded</DebugType>
@@ -19,7 +19,7 @@
   <ItemGroup>
     <!-- 宿主程序集：提供 IPlugin / IPluginHost / PluginManifest 契约 -->
     <Reference Include="Ink Canvas Ultra">
-      <HintPath>c:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\obj\Debug\Ink Canvas Ultra.exe</HintPath>
+      <HintPath>D:\AI\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Release\Ink Canvas Ultra.exe</HintPath>
       <Private>false</Private>
     </Reference>
     <!-- JavaScriptSerializer 用于读写简洁 JSON 配置，避免引入额外包 -->
