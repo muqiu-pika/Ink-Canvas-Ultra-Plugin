@@ -1,7 +1,7 @@
 {
   "id": "ink-canvas.document-to-image",
   "name": "文档转照片",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "author": "muqiu",
   "description": "将 Word / Excel / PDF 文件整份文档垂直拼接为一张长照片并添加到照片列表，支持本地转换缓存与同名修改检测，使用 NPOI 与 PdfiumViewer，无需安装 Microsoft Office。",
   "entryAssembly": "DocumentToImagePlugin.dll",

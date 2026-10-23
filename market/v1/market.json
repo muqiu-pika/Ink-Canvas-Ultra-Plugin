@@ -1,6 +1,6 @@
 {
   "apiVersion": "1.2",
-  "lastUpdated": "2026-10-23T13:11:10Z",
+  "lastUpdated": "2026-10-23T13:27:52Z",
   "market": {
     "name": "Ink Canvas Ultra Plugin Market",
     "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin",
@@ -10,24 +10,24 @@
     {
       "id": "ink-canvas.document-to-image",
       "name": "文档转照片",
-      "version": "3.1.0",
+      "version": "3.1.1",
       "gitRef": "main",
       "author": "muqiu",
       "description": "将 Word / Excel / PDF 文件整份文档垂直拼接为一张长照片并添加到照片列表，支持本地转换缓存与同名修改检测，使用 NPOI 与 PdfiumViewer，无需安装 Microsoft Office。",
       "tags": ["document", "pdf", "word", "excel", "image"],
       "category": "productivity",
       "minHostVersion": "26.8.1",
-      "size": 5325196,
+      "size": 5325456,
       "icon": "📄",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/documenttoimage.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/documenttoimage.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "8F7F458B2F44625D1F31E09C748256C0D4F50E18DC040E7EFFF8F8DB26E362C8"
+        "value": "EAD6B37A0EDB2F366A71C801B4A2334E2356EC315D03AA48B21E353A064F9259"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/documenttoimage/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/documenttoimage",
-      "releasedAt": "2026-08-15T09:31:00Z"
+      "releasedAt": "2026-10-23T13:30:00Z"
     },
     {
       "id": "ink-canvas.videocontrols",
