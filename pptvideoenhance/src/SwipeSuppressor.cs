@@ -8,15 +8,6 @@ using Ink_Canvas.Plugins;
 
 namespace Ink_Canvas.Plugins.PPTVideoEnhance
 {
-    /// <summary>
-    /// 防误翻页：低层鼠标钩子（WH_MOUSE_LL）。
-    /// 当插件处于"鼠标/穿透模式"时，拦截发往 PowerPoint / WPS 放映窗口的"触摸"手势——
-    /// 若触点落在视频区域外，则吞掉整段手势（down / move / up），阻止 PPT/WPS 把滑动或点击当成翻页；
-    /// 若触点在视频区域内，则放行（照常操作视频控件）。真实鼠标事件一律放行。
-    /// 钩子安装在我们自己进程内的专用 STA 线程（带消息循环），不需要注入 PPT/WPS 进程。
-    /// 关键风险：若 PPT/WPS 放映窗口是 touch-aware 且系统抑制了"触摸合成的鼠标事件"，
-    /// 则 WH_MOUSE_LL 可能收不到触摸事件，此时该方案失效（需退化为其他路线）。
-    /// </summary>
     internal sealed class SwipeSuppressor : IDisposable
     {
         private const int WH_MOUSE_LL = 14;

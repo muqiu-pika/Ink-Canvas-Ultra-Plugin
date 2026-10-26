@@ -1,13 +1,3 @@
-# DocumentToImage plugin build & pack script
-#
-# Usage:
-#   pwsh -File pack.ps1
-#   .\pack.ps1
-#
-# Steps:
-#   1. dotnet build DocumentToImagePlugin.csproj
-#   2. Collect plugin.icplugin + DocumentToImagePlugin.dll + dependencies
-#   3. Pack into documenttoimage.icplugin (ZIP)
 
 param(
     [string]$Configuration = "Release"
@@ -36,10 +26,8 @@ $staging = Join-Path $here "obj\staging"
 if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 
-# Copy manifest
 Copy-Item -Force (Join-Path $here "plugin.icplugin") $staging
 
-# Copy built DLL
 $dllSrc = Join-Path $here "bin\DocumentToImagePlugin.dll"
 if (-not (Test-Path $dllSrc)) {
     # Fallback to Debug

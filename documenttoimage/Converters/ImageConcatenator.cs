@@ -54,7 +54,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
 
             int total = pageFiles.Count;
 
-            // 第一遍：读取所有页面尺寸
             int maxWidth = 0;
             int totalHeight = 0;
             var pageDimensions = new List<(int w, int h, float dpiX, float dpiY)>(total);
@@ -113,7 +112,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
                     currentHeight = 0;
                     currentWidth = 0;
 
-                    // 检查当前文件是否单独超限
                     if (h > MaxChunkHeight || w > MaxChunkWidth || (long)w * h > MaxChunkPixels)
                     {
                         current.Add(i);
@@ -164,11 +162,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
                         {
                             g.Clear(Color.White);
 
-                            // 像素精确 1:1 复制：
-                            // - 使用 DrawImage(..., srcRect, GraphicsUnit.Pixel) 矩形重载，
-                            //   明确指定像素单位，避免 GDI+ 根据源/目标 DPI 差异自动缩放
-                            // - HighQualityBicubic 配合 PixelOffsetMode.HighQuality 保证
-                            //   1:1 复制时像素对齐，无模糊
                             g.CompositingQuality = CompositingQuality.HighQuality;
                             g.InterpolationMode = InterpolationMode.HighQualityBicubic;
                             g.PixelOffsetMode = PixelOffsetMode.HighQuality;
@@ -228,7 +221,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
                 int w = img.Width;
                 int h = img.Height;
 
-                // 尺寸在安全范围内：直接加载
                 if (h <= MaxChunkHeight && w <= MaxChunkWidth && (long)w * h <= MaxChunkPixels)
                 {
                     return new List<BitmapImage> { LoadBitmapImageFromFile(filePath) };
@@ -260,7 +252,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
                     finalH = h;
                 }
 
-                // 按高度切分为多个块
                 int stripCount = (int)Math.Ceiling((double)finalH / MaxChunkHeight);
                 var results = new List<BitmapImage>();
 
@@ -295,7 +286,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage.Converters
                                 }
                                 else
                                 {
-                                    // 1:1 像素复制
                                     var destRect = new Rectangle(0, 0, stripW, stripH);
                                     var srcRect = new Rectangle(0, offsetY, stripW, stripH);
                                     g.DrawImage(img, destRect, srcRect, GraphicsUnit.Pixel);

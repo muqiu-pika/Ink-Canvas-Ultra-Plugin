@@ -13,16 +13,6 @@ using WinForms = System.Windows.Forms;
 
 namespace Ink_Canvas.Plugins.PenColors
 {
-    /// <summary>
-    /// 自定义画笔颜色插件：
-    /// - 在插件工坊「设置」里修改「墨迹选项」中 9 个普通色 + 6 个荧光笔色的显示/落笔颜色；
-    /// - 可指定启动时的默认画笔颜色（写入主设置，不装插件时该设置只影响内置色的初始选中）；
-    /// - 颜色修改通过主程序 IPluginHost 的画笔颜色 API 应用（立即刷新色块、当前笔色、
-    ///   「批注」按钮的颜色指示与激光笔颜色）；
-    /// - 自定义色只存在于运行时：插件被禁用/卸载（Shutdown）时恢复全部内置颜色，
-    ///   因此不装插件时内置的 9 + 6 个颜色始终可用。
-    /// - 配置持久化在插件目录 pencolors.json（overrides + defaultIndex）。
-    /// </summary>
     public class PenColorsPlugin : IPlugin
     {
         private IPluginHost _host;
@@ -74,8 +64,6 @@ namespace Ink_Canvas.Plugins.PenColors
         {
             get { return Path.Combine(_pluginDirectory ?? string.Empty, "pencolors.json"); }
         }
-
-        // ===== 生命周期 =====
 
         public void Initialize(IPluginHost host)
         {
@@ -163,8 +151,6 @@ namespace Ink_Canvas.Plugins.PenColors
             return AppDomain.CurrentDomain.BaseDirectory;
         }
 
-        // ===== 应用颜色 =====
-
         private void ApplyOverrides()
         {
             if (_host == null) return;
@@ -203,8 +189,6 @@ namespace Ink_Canvas.Plugins.PenColors
             return _overrides.ContainsKey(index);
         }
 
-        // ===== 设置面板 =====
-
         private UIElement BuildSettingsPanelBody()
         {
             _slotRows.Clear();
@@ -227,7 +211,6 @@ namespace Ink_Canvas.Plugins.PenColors
             };
             root.Children.Add(_currentColorText);
 
-            // 默认颜色
             var defaultRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -295,7 +278,6 @@ namespace Ink_Canvas.Plugins.PenColors
             };
             root.Children.Add(resetAll);
 
-            // 打开面板时刷新一次（主题/当前色可能已变化）
             try { Application.Current.Dispatcher.BeginInvoke((Action)RefreshPanelVisuals); } catch { }
 
             return root;
@@ -502,8 +484,6 @@ namespace Ink_Canvas.Plugins.PenColors
             catch { }
         }
 
-        // ===== 面板辅助 =====
-
         private List<PenColorSlotInfo> SafeGetSlots()
         {
             var fallback = new List<PenColorSlotInfo>();
@@ -586,8 +566,6 @@ namespace Ink_Canvas.Plugins.PenColors
                 Margin = new Thickness(0, 2, 0, 4)
             };
         }
-
-        // ===== 配置读写 =====
 
         private void LoadConfig()
         {

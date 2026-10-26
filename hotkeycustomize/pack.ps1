@@ -1,12 +1,3 @@
-# HotkeyCustomize plugin build & pack script
-#
-# Usage:
-#   pwsh -File pack.ps1
-#
-# Steps:
-#   1. dotnet build HotkeyCustomizerPlugin.csproj
-#   2. Collect plugin.icplugin + HotkeyCustomizerPlugin.dll
-#   3. Pack into hotkeycustomize.icplugin (ZIP)
 
 param(
     [string]$Configuration = "Release"

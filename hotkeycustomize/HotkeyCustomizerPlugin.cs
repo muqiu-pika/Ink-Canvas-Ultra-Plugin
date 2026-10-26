@@ -12,12 +12,6 @@ using System.Web.Script.Serialization;
 
 namespace Ink_Canvas.Plugins.HotkeyCustomizer
 {
-    /// <summary>
-    /// 自定义快捷键插件：
-    /// - 通过宿主 IPluginHost 的 Get/Set/Reset 快捷键 API，重绑定软件自带快捷键。
-    /// - 在插件工坊注册一个可折叠的设置面板（设置图标展开/折叠），用户在此自定义按键。
-    /// - 配置持久化到插件目录 hotkeyconfig.json；禁用/卸载插件时恢复为软件默认按键。
-    /// </summary>
     public class HotkeyCustomizerPlugin : IPlugin
     {
         private IPluginHost _host;
@@ -38,7 +32,6 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
         private ModifierKeys _captureModifiers;
         private TextBlock _captureHint;
 
-        // 低层键盘钩子
         private LowLevelKeyboardProc _hookProc;
         private IntPtr _hookHandle;
         private readonly HashSet<int> _downVks = new HashSet<int>(); // 当前仍按住的物理vk（去重，容纳自动重复）
@@ -60,11 +53,9 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             _host = host ?? throw new ArgumentNullException(nameof(host));
             _pluginDirectory = FindPluginDirectory();
 
-            // 加载并应用已保存的自定义按键
             LoadConfig();
             ApplyOverrides();
 
-            // 注册插件工坊里的折叠设置面板
             try { _host.RegisterSettingsPanel(BuildSettingsPanelBody); } catch { }
         }
 
@@ -99,8 +90,6 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             catch { }
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", "hotkeycustomize");
         }
-
-        // ===== 配置持久化 =====
 
         private string ConfigPath => Path.Combine(_pluginDirectory, "hotkeyconfig.json");
 
@@ -151,13 +140,10 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             public string Combo { get; set; }
         }
 
-        // ===== 设置面板 UI =====
-
         private UIElement BuildSettingsPanelBody()
         {
             var root = new StackPanel { MinWidth = 340, MaxWidth = 760, Focusable = true };
 
-            // 顶部说明 + 全部恢复默认
             var header = new DockPanel { Margin = new Thickness(0, 0, 0, 8) };
             var headerText = new TextBlock
             {
@@ -188,7 +174,6 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             header.Children.Add(resetAllBtn);
             root.Children.Add(header);
 
-            // 捕获提示
             _captureHint = new TextBlock
             {
                 Text = string.Empty,
@@ -232,7 +217,6 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             for (int i = 0; i < 5; i++)
                 grid.ColumnDefinitions.Add(new ColumnDefinition { Width = i == 0 ? new GridLength(1, GridUnitType.Star) : GridLength.Auto });
 
-            // 左：动作名 + 说明
             var infoPanel = new StackPanel { Orientation = Orientation.Vertical };
             infoPanel.Children.Add(new TextBlock { Text = act.Name ?? act.Id, FontSize = 13, FontWeight = FontWeights.SemiBold });
             if (!string.IsNullOrWhiteSpace(act.Description))
@@ -240,7 +224,6 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             Grid.SetColumn(infoPanel, 0);
             grid.Children.Add(infoPanel);
 
-            // 当前组合键
             string display;
             if (_overrides.TryGetValue(act.Id, out var userCombo))
             {
@@ -265,7 +248,6 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             Grid.SetColumn(comboText, 1);
             grid.Children.Add(comboText);
 
-            // 设置
             var setBtn = MakeActionButton("设置", () =>
             {
                 BeginCapture(act.Id, row);
@@ -273,7 +255,6 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             Grid.SetColumn(setBtn, 2);
             grid.Children.Add(setBtn);
 
-            // 禁用
             var disableBtn = MakeActionButton("禁用", () =>
             {
                 EndCaptureIfAny(); // 若正在捕获，先结束并恢复快捷键
@@ -286,7 +267,6 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             Grid.SetColumn(disableBtn, 3);
             grid.Children.Add(disableBtn);
 
-            // 恢复默认
             var resetBtn = MakeActionButton("恢复默认", () =>
             {
                 EndCaptureIfAny(); // 若正在捕获，先结束并恢复快捷键
@@ -540,7 +520,6 @@ namespace Ink_Canvas.Plugins.HotkeyCustomizer
             ShowCaptureHint("正在记录：" + FormatHeldKeys() + "　——　继续按住更多键，全部松开后保存");
         }
 
-        // 显示本次会话累计按下的组合（修饰键 + 主键），用于反馈
         private string FormatHeldKeys()
         {
             var parts = new List<string>();

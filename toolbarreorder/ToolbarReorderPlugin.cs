@@ -10,14 +10,6 @@ using System.Windows.Media;
 
 namespace Ink_Canvas.Plugins.ToolbarReorder
 {
-    /// <summary>
-    /// 工具栏按钮排序插件：
-    /// - 通过宿主 IPluginHost 的 GetReorderableToolbarGroups / ApplyToolbarOrder / ResetToolbarPlacement API，
-    ///   调整浮动工具栏 / 白板工具栏的功能按钮顺序。
-    /// - 通过 IPluginHost.SetToolbarHidden 支持删除（隐藏）工具栏按钮。
-    /// - 在插件工坊注册一个设置面板（上移 / 下移 / 删除 / 恢复默认）。
-    /// - 配置持久化到插件目录 toolbarconfig.json；禁用/卸载插件时恢复软件默认布局。
-    /// </summary>
     public class ToolbarReorderPlugin : IPlugin
     {
         private IPluginHost _host;
@@ -49,7 +41,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
 
             LoadConfig();
 
-            // 注册插件工坊里的折叠设置面板
             try { _host.RegisterSettingsPanel(BuildSettingsPanelBody); } catch { }
 
             // 窗口显示后再重放已保存顺序（Initialize 发生在 MainWindow 构造阶段，窗口尚未显示）
@@ -96,8 +87,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             catch { }
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", "toolbarreorder");
         }
-
-        // ===== 配置持久化 =====
 
         private string ConfigPath => Path.Combine(_pluginDirectory, "toolbarconfig.json");
 
@@ -165,8 +154,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             return group.Items.OrderBy(i => i.DefaultIndex).Select(i => i.Id).ToList();
         }
 
-        // ===== 应用保存顺序 =====
-
         private void ApplySavedOrder()
         {
             foreach (var kv in _order)
@@ -181,8 +168,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
                 try { _host?.ApplyToolbarOrder(placement, kv.Value); } catch { }
             }
         }
-
-        // ===== 设置面板 UI =====
 
         private UIElement BuildSettingsPanelBody()
         {
@@ -226,7 +211,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
                     _defaults[placement] = current.ToList();
             }
 
-            // 组标题 + 恢复默认
             var groupHeader = new DockPanel { Margin = new Thickness(0, 14, 0, 4) };
             var title = new TextBlock
             {
@@ -254,7 +238,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             // 确认顺序与当前组一致（防止安装/升级后按钮集合变化）
             var groupIds = group.Items.Select(i => i.Id).ToHashSet();
             current = _order[placement].Where(id => groupIds.Contains(id)).ToList();
-            // 补齐新增的按钮到末尾
             foreach (var item in group.Items.OrderBy(i => i.DefaultIndex))
                 if (!current.Contains(item.Id)) current.Add(item.Id);
             _order[placement] = current;
@@ -291,7 +274,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             Grid.SetColumn(nameText, 0);
             grid.Children.Add(nameText);
 
-            // 当前序号
             var positions = Positions(placement);
             int pos = positions.IndexOf(item.Id);
 
@@ -354,7 +336,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
             positions.RemoveAt(idx);
             positions.Insert(target, id);
 
-            // 立即应用到主界面并持久化
             bool ok = false;
             try { ok = _host?.ApplyToolbarOrder(placement, positions) ?? false; } catch { }
             if (ok) SaveConfig();
@@ -368,7 +349,6 @@ namespace Ink_Canvas.Plugins.ToolbarReorder
 
         private void RefreshGroup(StackPanel root, ToolbarReorderGroup group)
         {
-            // 简单安全：全部重建一次
             RebuildAll(root);
         }
 

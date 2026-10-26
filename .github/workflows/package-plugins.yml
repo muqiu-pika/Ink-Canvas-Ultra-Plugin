@@ -1,7 +1,6 @@
 name: Package Plugins
 
 on:
-  # 手动触发
   workflow_dispatch:
   # 推送到 main 时自动打包（产物以 Artifact 形式提供，不写回仓库）
   push:
@@ -15,19 +14,12 @@ on:
   release:
     types: [published]
 
-# release 事件需要把打包产物作为资产附到 Release，故授予 contents: write。
-# 本工作流任何步骤都不会 git commit/push 回仓库（push 事件仅上传 Artifact，不写回源码），
-# 因此"保留仓库里已打包好的插件"的约定仍然成立——CI 产物只进 build-output/ 与 Release 资产，不覆盖源码树中的 .icplugin。
 permissions:
   contents: write
 
 env:
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "1"
-  # 主程序（ICU）引用程序集所在目录，用于解析插件 csproj 中硬编码的 HintPath。
-  # CI 默认没有本机路径，需在仓库 Secrets 中配置 INKCANVAS_LIB_PATH 指向包含
-  # "Ink Canvas Ultra.exe" 及其依赖 DLL 的目录（可由 ICU 的 Release 构建产物提供）。
-  # 未配置时插件构建会失败（下面会记录警告并继续，不影响工作流其它步骤）。
   INKCANVAS_LIB_PATH: ${{ secrets.INKCANVAS_LIB_PATH }}
 
 jobs:
@@ -123,10 +115,6 @@ jobs:
 
             Write-Host "==> 处理插件目录: $dir"
 
-            # 将 csproj 中硬编码的本机 HintPath 替换为 CI 可用的主程序引用目录。
-            # 各插件的写法不统一：有的用 bin\Debug，有的用 bin\Release，有的用 obj\Debug，
-            # 大小写也可能不同（VideoControlsPlugin.csproj 用小写 'c:\'）。因此按“整个磁盘路径 +
-            # \Ink Canvas\(bin|obj)\(Debug|Release)\”整体匹配，替换为目标目录，与具体本机路径无关。
             $lib = $env:INKCANVAS_LIB_PATH
             if ($lib -and (Test-Path $lib)) {
               $txt = Get-Content $csproj.FullName -Raw

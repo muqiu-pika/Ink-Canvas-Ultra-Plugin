@@ -112,8 +112,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
             return false;
         }
 
-        // ===== PowerPoint =====
-
         private bool TryDetectPowerPoint(List<VideoRegion> outRegions)
         {
             try
@@ -201,8 +199,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
             catch { }
             return false;
         }
-
-        // ===== WPS 演示（dynamic） =====
 
         private bool TryDetectWps(List<VideoRegion> outRegions)
         {
@@ -294,8 +290,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
             return false;
         }
 
-        // ===== 坐标换算 =====
-
         /// <summary>
         /// 获取窗口"客户区"在屏幕上的物理像素矩形（左上角 + 宽高）。
         /// 用客户区而非窗口矩形做比例映射，可排除标题栏/边框，使视频区域定位更贴近实际显示。
@@ -336,8 +330,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
                 Hwnd = hwnd
             });
         }
-
-        // ===== P/Invoke =====
 
         [DllImport("user32.dll")]
         private static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);

@@ -3,13 +3,6 @@ using Ink_Canvas.Plugins;
 
 namespace Ink_Canvas.Plugins.Example
 {
-    /// <summary>
-    /// Ink Canvas Ultra plugin 示例入口。
-    /// 把此目录复制为新名称后：
-    ///   1. 修改 plugin.icplugin 中的 id / name / entryAssembly / entryClass
-    ///   2. 修改本文件的命名空间与类名（与 entryClass 一致）
-    ///   3. 编译生成 DLL，与 plugin.icplugin 一起放到主程序 Plugins\&lt;新 id&gt;\ 目录
-    /// </summary>
     public class ExamplePlugin : IPlugin
     {
         public PluginManifest Manifest { get; private set; }
@@ -28,7 +21,6 @@ namespace Ink_Canvas.Plugins.Example
 
             _host.Log($"ExamplePlugin 已初始化，目录: {_host.PluginDirectory}", PluginLogLevel.Event);
 
-            // 订阅主程序事件
             _host.ApplicationExiting += OnExiting;
             _host.BoardModeChanged += OnBoardModeChanged;
 
@@ -43,7 +35,6 @@ namespace Ink_Canvas.Plugins.Example
 
         private void OnExiting(object sender, EventArgs e)
         {
-            // 在主程序退出时释放资源
         }
 
         private void OnBoardModeChanged(object sender, BoardModeChangedEventArgs e)

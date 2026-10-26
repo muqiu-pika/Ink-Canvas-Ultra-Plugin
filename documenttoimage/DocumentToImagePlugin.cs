@@ -13,11 +13,6 @@ using System.Windows.Threading;
 
 namespace Ink_Canvas.Plugins.DocumentToImage
 {
-    /// <summary>
-    /// 文档转照片插件：将 Word / Excel / PDF 文件转为图片并插入 ICU 照片列表。
-    /// 通过注册 document-open 路由响应主程序的「导入文档」按钮和命令行打开。
-    /// 使用开源 NPOI 与 PdfiumViewer，无需安装 Microsoft Office。
-    /// </summary>
     public class DocumentToImagePlugin : IPlugin
     {
         private IPluginHost _host;
@@ -242,11 +237,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                     return;
                 }
 
-                // 逐块加载、传给主程序、释放，避免所有分块同时驻留内存导致 OOM。
-                // 每块用一次独立的 Dispatcher.Invoke 同步调度：块与块之间 UI 线程可回到消息
-                // 循环处理输入、渲染与进度窗口动画。原先把整个 for 循环包在一个 Invoke 里，
-                // 大文档（如 80+ 页 PDF）会在 UI 线程连续做几十次图片解码 + PNG 落盘 +
-                // 照片列表重建（数分钟），表现为界面彻底卡死、只能重启电脑。
                 int totalChunks = pageFiles.Count;
                 var host = _host;
                 var mainWindow = host?.MainWindow;
@@ -310,7 +300,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             }
             finally
             {
-                // 清理临时目录
                 try { if (tempDir != null && Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
                 // 主动触发 GC 回收转换过程中产生的临时内存
                 try { GC.Collect(); GC.WaitForPendingFinalizers(); } catch { }
@@ -332,7 +321,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             tempDir = null;
             string ext = Path.GetExtension(filePath).ToLowerInvariant();
 
-            // 创建临时目录，渲染每页为独立 PNG 文件写入磁盘
             tempDir = Path.Combine(Path.GetTempPath(), $"icu_doc_{Guid.NewGuid():N}");
             Directory.CreateDirectory(tempDir);
 
@@ -373,7 +361,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             }
             catch
             {
-                // 失败时立即清理临时目录
                 try { if (tempDir != null && Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
                 throw;
             }
@@ -482,9 +469,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             }
             finally
             {
-                // 清理临时目录
                 try { if (tempDir != null && Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
-                // 释放转换过程中产生的位图内存
                 try { GC.Collect(); GC.WaitForPendingFinalizers(); } catch { }
             }
         }

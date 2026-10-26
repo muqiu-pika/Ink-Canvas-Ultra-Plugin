@@ -7,13 +7,6 @@ using Ink_Canvas.Plugins;
 
 namespace Ink_Canvas.Plugins.VideoControls
 {
-    /// <summary>
-    /// 视频控件 plugin：
-    /// - 注册路由 "video-insert" 接管主程序的视频插入
-    /// - 订阅 ElementSelectionChanged 显示控制条
-    /// - 订阅 ElementRemoved / ElementTransformed 同步状态
-    /// - 通过 host.RegisterSelectionControlBar 把控制条注册到主程序 VideoControlContainer 插槽
-    /// </summary>
     public class VideoControlsPlugin : IPlugin
     {
         public PluginManifest Manifest { get; private set; }
@@ -21,14 +14,12 @@ namespace Ink_Canvas.Plugins.VideoControls
         private IPluginHost _host;
         private InkCanvas _inkCanvas;
 
-        // 控制条 UI
         private Border _controlBar;
         private Button _btnPlayPause;
         private TextBlock _iconPlayPause;
         private Slider _sliderProgress;
         private Slider _sliderVolume;
 
-        // 状态
         private MediaElement _selectedMediaElement;
         private DispatcherTimer _videoTimer;
         private bool _isSeeking;
@@ -47,17 +38,13 @@ namespace Ink_Canvas.Plugins.VideoControls
 
             _host.Log($"VideoControlsPlugin 已初始化，目录: {_host.PluginDirectory}", PluginLogLevel.Event);
 
-            // 获取主程序画布
             _inkCanvas = _host.GetInkCanvas();
 
-            // 构建控制条 UI
             BuildControlBar();
 
-            // 注册到主程序插槽
             _host.RegisterSelectionControlBar(_controlBar);
             _controlBar.Visibility = Visibility.Collapsed;
 
-            // 订阅事件
             _host.ElementSelectionChanged += OnSelectionChanged;
             _host.ElementRemoved += OnElementRemoved;
             _host.ElementTransformed += OnElementTransformed;
@@ -102,8 +89,6 @@ namespace Ink_Canvas.Plugins.VideoControls
             }
             catch { }
         }
-
-        // ===== 控制条 UI 构建 =====
 
         private void BuildControlBar()
         {
@@ -178,8 +163,6 @@ namespace Ink_Canvas.Plugins.VideoControls
             };
         }
 
-        // ===== 视频插入 =====
-
         private void InsertVideo(string filePath)
         {
             if (_inkCanvas == null)
@@ -221,7 +204,6 @@ namespace Ink_Canvas.Plugins.VideoControls
             mediaElement.PreviewTouchDown += (s, e) => { e.Handled = true; TogglePlayback(); };
             mediaElement.PreviewStylusDown += (s, e) => { e.Handled = true; TogglePlayback(); };
 
-            // 居中缩放
             CenterAndScaleElement(mediaElement);
 
             InkCanvas.SetLeft(mediaElement, 0);
@@ -262,8 +244,6 @@ namespace Ink_Canvas.Plugins.VideoControls
             element.RenderTransform = transformGroup;
         }
 
-        // ===== 选择事件处理 =====
-
         private void OnSelectionChanged(object sender, PluginElementSelectionChangedEventArgs e)
         {
             _selectedMediaElement = null;
@@ -302,8 +282,6 @@ namespace Ink_Canvas.Plugins.VideoControls
         {
             // 元素被变换时无需特殊处理（控制条嵌入在父容器中随父容器布局）
         }
-
-        // ===== 控制条显示/隐藏 =====
 
         private void ShowControlBar()
         {
@@ -358,8 +336,6 @@ namespace Ink_Canvas.Plugins.VideoControls
             catch { }
         }
 
-        // ===== 计时器 =====
-
         private void StartTimer()
         {
             if (_videoTimer == null)
@@ -388,8 +364,6 @@ namespace Ink_Canvas.Plugins.VideoControls
             }
             catch { }
         }
-
-        // ===== 按钮与滑块事件 =====
 
         private void BtnPlayPause_Click(object sender, RoutedEventArgs e)
         {

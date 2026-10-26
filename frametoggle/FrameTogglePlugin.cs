@@ -14,26 +14,12 @@ using System.Windows.Threading;
 
 namespace Ink_Canvas.Plugins.FrameToggle
 {
-    /// <summary>
-    /// 窗口边框开关插件：
-    /// - 控制 ICU 各功能窗口是否显示 Windows 原生边框（标题栏 + 可调整大小的外框）。
-    /// - 通过 Win32 SetWindowLongPtr(GWL_STYLE) 开关 WS_CAPTION / WS_THICKFRAME，
-    ///   而不是改 WPF 的 WindowStyle —— 后者会触发 HWND 重建导致闪烁，
-    ///   且对 AllowsTransparency 窗口会直接抛异常。
-    /// - 仅作用于「原本就带 Windows 边框」的窗口（以首次见到的原始样式为准），
-    ///   因此全屏画板 MainWindow、截图遮罩这类 WindowStyle=None 的窗口天然不受影响。
-    /// - 显式排除：设置（MW_Settings）、插件工坊（PluginWorkshopWindow）。
-    /// - 隐藏边框后仍保留 WS_SYSMENU，可用 Alt+Space 调出「移动/大小/关闭」兜底。
-    /// - 在插件工坊注册设置面板：总开关 + 每个窗口单独指定（跟随/隐藏/显示）。
-    /// - 配置持久化到插件目录 frametoggle.json；禁用/卸载时恢复所有窗口原始边框。
-    /// </summary>
     public class FrameTogglePlugin : IPlugin
     {
         private IPluginHost _host;
         private string _pluginDirectory;
         private DispatcherTimer _timer;
 
-        // 总开关：true = 隐藏边框
         private bool _hideAll;
         // 每窗口覆盖：类型名 -> true 隐藏 / false 显示；不含该项表示跟随总开关
         private readonly Dictionary<string, bool> _perWindow =
@@ -65,8 +51,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
             EntryClass = "Ink_Canvas.Plugins.FrameToggle.FrameTogglePlugin",
             MinHostVersion = "26.10.6"
         };
-
-        // ===== Win32 =====
 
         private const int GWL_STYLE = -16;
         private const int WS_CAPTION = 0x00C00000;     // WS_BORDER | WS_DLGFRAME
@@ -110,8 +94,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
             else SetWindowLongPtr32(hWnd, GWL_STYLE, v);
         }
 
-        // ===== 窗口筛选 =====
-
         /// <summary>已知窗口类型的中文显示名（面板以此为基础列出）。</summary>
         private static readonly Dictionary<string, string> DisplayNames =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
@@ -127,12 +109,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
                 { "PenColorsPluginPromptWindow", "画笔颜色插件安装提示" },
             };
 
-        /// <summary>
-        /// 按「窗口内容文本」细分的规则（优先于类型级设置）。
-        /// 场景：PPT 的三个提示都不是独立窗口类，全是 YesOrNoNotificationWindow 的实例，
-        /// 且窗口 Title 完全相同（都是「确认操作 - Ink Canvas Ultra」），
-        /// 唯一能区分它们的是内容区那个 Name="Label" 的提示语，故按内容关键词匹配。
-        /// </summary>
         private static readonly List<TitleRule> ContentRules = new List<TitleRule>
             {
                 new TitleRule { Keyword = "是否立即跳转", Display = "PPT 自动跳转提示" },
@@ -158,13 +134,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
             catch { return false; }
         }
 
-        /// <summary>
-        /// 显式排除的类型：
-        /// - MW_Settings（设置）、PluginWorkshopWindow（插件工坊）：用户要求，必须保留边框以便操作。
-        /// - MainWindow（全屏画板）、ScreenshotSelectorWindow（全屏截图遮罩）：
-        ///   二者本身是 WindowStyle=None，会被「无原始边框」规则过滤掉，这里再显式兜底，
-        ///   避免将来它们被改成带边框后误伤画板坐标/截图区域。
-        /// </summary>
         private static readonly HashSet<string> ExcludedTypes =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase)
             {
@@ -241,8 +210,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
             return null;
         }
 
-        // ===== 生命周期 =====
-
         public void Initialize(IPluginHost host)
         {
             _host = host ?? throw new ArgumentNullException(nameof(host));
@@ -306,8 +273,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Plugins", "frametoggle");
         }
 
-        // ===== 扫描与应用 =====
-
         private void EnsureTimer()
         {
             if (_timer != null) return;
@@ -343,7 +308,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
 
             int cur = unchecked((int)GetStyle(hwnd));
 
-            // 首次见到该窗口：记录原始样式
             StyleBox box;
             if (!_originalStyle.TryGetValue(w, out box))
             {
@@ -362,7 +326,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
             int target;
             if (hide)
             {
-                // 移除标题栏与可调边框，其余位保持原样
                 target = cur & ~(WS_CAPTION | WS_THICKFRAME);
             }
             else
@@ -403,8 +366,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
                 SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE | SWP_FRAMECHANGED);
         }
 
-        // ===== 配置持久化 =====
-
         private string ConfigPath => Path.Combine(_pluginDirectory, "frametoggle.json");
 
         private void LoadConfig()
@@ -444,8 +405,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
             public Dictionary<string, bool> PerWindow { get; set; }
         }
 
-        // ===== 设置面板 UI =====
-
         private UIElement BuildSettingsPanelBody()
         {
             var root = new StackPanel { MinWidth = 360, MaxWidth = 780 };
@@ -455,7 +414,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
                 "仅作用于原本带边框的窗口，全屏画板与截图遮罩不受影响；" +
                 "「设置」和「插件工坊」始终保留边框。隐藏边框后仍可按 Alt+Space 调出系统菜单进行移动/关闭。"));
 
-            // 总开关
             var master = new CheckBox
             {
                 Content = "隐藏所有受管窗口的 Windows 边框",
@@ -496,7 +454,6 @@ namespace Ink_Canvas.Plugins.FrameToggle
                 root.Children.Add(BuildRow(display, typeName));
             }
 
-            // 按提示内容细分（优先于类型级）
             root.Children.Add(new Separator { Margin = new Thickness(0, 14, 0, 6) });
             root.Children.Add(MakeNote(
                 "按提示内容细分（优先于上面的类型设置）：PPT 的三个提示都是「确认提示框」的实例，" +

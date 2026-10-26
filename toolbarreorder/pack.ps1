@@ -1,12 +1,3 @@
-# ToolbarReorder plugin build & pack script
-#
-# Usage:
-#   pwsh -File pack.ps1
-#
-# Steps:
-#   1. dotnet build ToolbarReorderPlugin.csproj
-#   2. Collect plugin.icplugin + ToolbarReorderPlugin.dll
-#   3. Pack into toolbarreorder.icplugin (ZIP)
 
 param(
     [string]$Configuration = "Release"

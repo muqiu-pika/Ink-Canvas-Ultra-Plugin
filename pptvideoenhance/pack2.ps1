@@ -2,9 +2,6 @@
 $repoRoot = 'C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra-Plugin'
 $log = 'C:\Users\muqiu\Desktop\icu\muqiu-pika\Ink-Canvas-Ultra-Plugin\pack_log.txt'
 
-# 重新打包必然改变 .icplugin 的字节数（zip 内含文件时间戳），
-# 若不同步市场目录里的 size / SHA256，ICU 插件工坊会判定文件被篡改而拒绝安装。
-# 因此每次打包成功后都重算一次市场元数据。
 function Sync-MarketMetadata {
     param($logFile)
     $sync = Join-Path $repoRoot 'tools\update-market-metadata.py'

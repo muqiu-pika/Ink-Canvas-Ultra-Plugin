@@ -11,20 +11,6 @@ using Ink_Canvas.Plugins;
 
 namespace Ink_Canvas.Plugins.PPTVideoEnhance
 {
-    /// <summary>
-    /// PPT 视频增强插件（移植自 icc 的「PPT 内视频区域模式自动切换」，并按新需求重构）。
-    ///
-    /// 行为：
-    ///  - 放映 PowerPoint / WPS 时自动识别当前幻灯片视频控件屏幕区域。
-    ///  - 鼠标移入视频区域 → 切换为"鼠标/穿透输入"（可直接操作视频播放器），浮动栏显示保持不变，仅弹消息提示框。
-    ///  - 视频区域左下角显示透明切换按钮：自动模式下显示"笔"图标，点击→锁定批注模式（强制批注输入、关闭自动切换，浮动栏不变）；
-    ///    锁定模式下显示"播放"图标，点击→恢复自动切换。
-    ///  - 无视频区域 / 退出放映 → 隐藏按钮并恢复批注输入，浮动栏不变。
-    ///
-    /// 关键点：不直接调用宿主 CursorIcon_Click / PenIcon_Click（它们会顺带改浮动栏），
-    /// 而是用 GetInkCanvas() + FindName 取得宿主视觉元素，仅切换"输入穿透/批注"相关属性，
-    /// 刻意跳过浮动栏动画/子面板等副作用，从而做到"浮动栏状态不变"。
-    /// </summary>
     public class PPTVideoEnhancePlugin : IPlugin
     {
         public PluginManifest Manifest { get; private set; }
@@ -184,7 +170,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
                 return;
             }
 
-            // 自动模式：按光标位置自动切换输入
             if (regions.Count == 0)
             {
                 if (_inputPassthrough) ApplyInput(false);
@@ -266,7 +251,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
             {
                 if (passthrough)
                 {
-                    // 进入穿透：先保存当前宿主输入状态
                     if (!_passthroughStarted && _inkCanvas != null && _mainGrid != null)
                     {
                         _savedInkHitTest = _inkCanvas.IsHitTestVisible;
@@ -356,11 +340,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
             if (_inputPassthrough && _swipe != null) _swipe.Active = false;
         }
 
-        /// <summary>
-        /// 局部穿透：把 Main_Grid 背景设为"视频区域矩形 alpha=0、其余 alpha=1"的 DrawingBrush。
-        /// 这样视频区域内鼠标/触摸穿透到 PPT 可操作；视频区域外窗口保持可命中，能收到落笔事件，
-        /// 从而在触摸屏上"视频区域外书写的第一笔"能立即被识别为批注。
-        /// </summary>
         private void SetPassthroughBackground()
         {
             try
@@ -469,11 +448,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
             catch { return false; }
         }
 
-        /// <summary>
-        /// 判断浮动栏当前是否为"鼠标"状态：宿主切换到鼠标模式时会把墨迹画布
-        /// EditingMode 置为 Select（笔模式为 Ink）。
-        /// 鼠标状态下"进入/离开视频区域"对用户无实际变化，应抑制相关提示。
-        /// </summary>
         private bool IsHostInMouseMode()
         {
             try { return _inkCanvas != null && _inkCanvas.EditingMode == InkCanvasEditingMode.Select; }
@@ -506,11 +480,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
                             _overlay.Children.Add(btn);
                             Panel.SetZIndex(btn, 9999);
                         }
-                        // 探测器坐标为物理屏幕像素（GetWindowRect）。
-                        // PointFromScreen 期望输入设备（物理）像素，内部用 TransformFromDevice
-                        // 自动转成覆盖层局部逻辑坐标（同时处理宿主窗口位置与 DPI）。
-                        // 注意：此处不能先手动乘 DPI 比例——那会导致物理→逻辑被做两次，DPI≠100% 时按钮偏移。
-                        // 换算"视频左下角"这个点，按钮底部贴着该点内缩 6px，即为视频区域左下角。
                         double bx = r.Left;
                         double by = r.Top + r.Height;
                         var local = _overlay.PointFromScreen(new Point(bx, by));
@@ -524,7 +493,6 @@ namespace Ink_Canvas.Plugins.PPTVideoEnhance
                     catch { }
                 });
             }
-            // 移除多余按钮（区域减少时）
             var keys = new List<int>(_buttons.Keys);
             foreach (var key in keys)
             {

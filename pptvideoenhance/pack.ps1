@@ -1,16 +1,3 @@
-# PPTVideoEnhance plugin build & pack script
-#
-# Usage:
-#   pwsh -File pack.ps1
-#   .\pack.ps1 -Configuration Release
-#
-# Steps:
-#   1. dotnet build PPTVideoEnhancePlugin.csproj
-#   2. Collect plugin.icplugin + PPTVideoEnhancePlugin.dll
-#   3. Pack into pptvideoenhance.icplugin (ZIP)
-#
-# 说明：插件复用宿主已加载的 Office 互操作 / Newtonsoft.Json 程序集（Private=false），
-#       因此除自身 DLL 外不打包任何额外依赖，体积极小。
 
 param(
     [string]$Configuration = "Release"
@@ -39,10 +26,8 @@ $staging = Join-Path $here "obj\staging"
 if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 
-# Copy manifest
 Copy-Item -Force (Join-Path $here "plugin.icplugin") $staging
 
-# Copy built DLL
 $dllSrc = Join-Path $here "bin\PPTVideoEnhancePlugin.dll"
 if (-not (Test-Path $dllSrc)) {
     $dllSrc = Join-Path $here "bin\Debug\PPTVideoEnhancePlugin.dll"

@@ -1,12 +1,3 @@
-# videocontrols plugin build & pack script
-#
-# Usage:
-#   pwsh -File pack.ps1
-#   .\pack.ps1
-#
-# Steps:
-#   1. dotnet build VideoControlsPlugin.csproj
-#   2. Pack plugin.icplugin + VideoControlsPlugin.dll into videocontrols.icplugin (ZIP)
 
 param(
     [string]$Configuration = "Release"
@@ -35,7 +26,6 @@ $staging = Join-Path $here "obj\staging"
 if (Test-Path $staging) { Remove-Item -Recurse -Force $staging }
 New-Item -ItemType Directory -Force -Path $staging | Out-Null
 
-# Copy manifest
 Copy-Item -Force (Join-Path $here "plugin.icplugin") $staging
 
 # Copy built DLL (from bin\ for Release)
