@@ -381,6 +381,9 @@ namespace Ink_Canvas.Plugins.PenColors
 
         private void OnPickColor(int index)
         {
+            // 入口日志：设备上反馈"右键没弹出调色框"时，先看这里有没有出现——
+            // 没出现=事件没到插件（宿主版本/手势挂载问题）；出现了=取色器本身打开失败
+            try { _host?.Log($"自定义画笔颜色: 打开取色器 slot={index}", PluginLogLevel.Info); } catch { }
             try
             {
                 var current = ResolveSlotColor(index);
@@ -413,7 +416,10 @@ namespace Ink_Canvas.Plugins.PenColors
             }
             catch (Exception ex)
             {
-                try { _host?.Log("自定义画笔颜色: 取色失败 " + ex.Message, PluginLogLevel.Warning); } catch { }
+                // 失败必须可见：部分精简系统/策略限制会让 ColorDialog 构造直接抛异常，
+                // 之前只写日志，用户看到的就是"点了没反应"
+                try { _host?.Log("自定义画笔颜色: 取色器打开失败 " + ex, PluginLogLevel.Warning); } catch { }
+                try { _host?.ShowNotification("取色器打开失败：" + ex.Message); } catch { }
             }
         }
 
