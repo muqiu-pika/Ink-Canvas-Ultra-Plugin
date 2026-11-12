@@ -234,13 +234,13 @@
       ],
       "category": "teaching",
       "minHostVersion": "26.11.1",
-      "size": 24968,
+      "size": 25014,
       "icon": "📈",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/functiongraph.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/functiongraph.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "1F6F17DB0025E15CF5DC68D3DA7C6E8B8A62287AF21970165AEB41D91D254386"
+        "value": "3D35154E2AEC9B5D415B88403BB0132DC27F244EC7C01B99BC80559E2A596C3C"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/functiongraph/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/functiongraph",

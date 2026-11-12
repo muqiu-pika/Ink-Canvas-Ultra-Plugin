@@ -64,19 +64,28 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         /// <summary>工具按钮：字体「ƒ」样式，前景色随宿主面板主题（继承宿主行级 TextElement.Foreground）。</summary>
         private UIElement BuildToolButton()
         {
+            // 用固定 18x30 的 Viewbox 包裹，元素总宽约 20px——与所在行内空位同宽，
+            // 避免把该行撑成最宽行（会把面板内容整体缩小、底部留空）
             var text = new TextBlock
             {
                 Text = "ƒ",
                 FontSize = 30,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(10, 6, 10, 6),
                 VerticalAlignment = VerticalAlignment.Center
                 // Foreground 不设置：由宿主工具行通过 TextElement.Foreground 继承主题色
             };
 
-            var border = new Border
+            var glyph = new Viewbox
             {
                 Child = text,
+                Width = 18,
+                Height = 30
+            };
+
+            var border = new Border
+            {
+                Child = glyph,
+                Margin = new Thickness(1, 6, 1, 6),
                 Background = Brushes.Transparent,
                 Cursor = Cursors.Hand,
                 ToolTip = "函数：手写 f(x) 并在画布上放置函数图像"
