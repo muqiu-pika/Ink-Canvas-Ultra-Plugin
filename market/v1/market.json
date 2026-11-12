@@ -1,6 +1,6 @@
 {
   "apiVersion": "1.2",
-  "lastUpdated": "2026-10-23T13:27:52Z",
+  "lastUpdated": "2026-11-12T08:17:00Z",
   "market": {
     "name": "Ink Canvas Ultra Plugin Market",
     "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin",
@@ -14,7 +14,13 @@
       "gitRef": "main",
       "author": "muqiu",
       "description": "将 Word / Excel / PDF 文件整份文档垂直拼接为一张长照片并添加到照片列表，支持本地转换缓存与同名修改检测，使用 NPOI 与 PdfiumViewer，无需安装 Microsoft Office。",
-      "tags": ["document", "pdf", "word", "excel", "image"],
+      "tags": [
+        "document",
+        "pdf",
+        "word",
+        "excel",
+        "image"
+      ],
       "category": "productivity",
       "minHostVersion": "26.8.1",
       "size": 5325456,
@@ -36,7 +42,11 @@
       "gitRef": "main",
       "author": "Ink Canvas Ultra",
       "description": "为 Ink Canvas Ultra 提供视频元素的播放控制条（进度条、暂停/播放、音量）。选中视频元素时自动显示控制条。",
-      "tags": ["video", "media", "controls"],
+      "tags": [
+        "video",
+        "media",
+        "controls"
+      ],
       "category": "media",
       "minHostVersion": "7.0.0",
       "size": 11937,
@@ -58,7 +68,11 @@
       "gitRef": "main",
       "author": "Ink Canvas Ultra",
       "description": "为 Ink Canvas Ultra 提供视频展台能力：摄像头捕获、拍照、实时矫正、设备切换、画面旋转、白板页绑定。",
-      "tags": ["video", "camera", "presenter"],
+      "tags": [
+        "video",
+        "camera",
+        "presenter"
+      ],
       "category": "media",
       "minHostVersion": "7.0.0",
       "size": 9719,
@@ -80,7 +94,11 @@
       "gitRef": "main",
       "author": "muqiu",
       "description": "自定义软件自带的快捷键。在插件工坊中点击插件上的「设置」图标，即可为每个内置动作重新绑定组合键；禁用或卸载本插件后恢复为软件默认按键。",
-      "tags": ["hotkey", "shortcut", "input"],
+      "tags": [
+        "hotkey",
+        "shortcut",
+        "input"
+      ],
       "category": "tools",
       "minHostVersion": "26.8.1",
       "size": 15655,
@@ -102,7 +120,12 @@
       "gitRef": "main",
       "author": "muqiu",
       "description": "放映 PPT / WPS 时自动识别幻灯片视频控件区域，鼠标移入视频即切换为鼠标/穿透模式（可直接操作播放），浮动栏显示保持不变；视频左下角提供透明笔/播放切换按钮，点击锁定批注或恢复自动。支持微软 PowerPoint 与 WPS 演示。",
-      "tags": ["ppt", "wps", "video", "slideshow"],
+      "tags": [
+        "ppt",
+        "wps",
+        "video",
+        "slideshow"
+      ],
       "category": "media",
       "minHostVersion": "26.8.1",
       "size": 25390,
@@ -124,7 +147,11 @@
       "gitRef": "main",
       "author": "muqiu",
       "description": "自定义浮动工具栏 / 白板工具栏的按钮顺序，支持删除按钮（「工具」按钮除外）；在插件工坊点击「设置」展开配置；禁用或卸载本插件后恢复默认布局。",
-      "tags": ["toolbar", "customize", "ui"],
+      "tags": [
+        "toolbar",
+        "customize",
+        "ui"
+      ],
       "category": "tools",
       "minHostVersion": "26.9.5",
       "size": 13838,
@@ -146,7 +173,11 @@
       "gitRef": "main",
       "author": "muqiu",
       "description": "控制 ICU 各功能窗口是否显示 Windows 原生边框（标题栏 + 外框）。在插件工坊「设置」中可一键总开关，也可为每个窗口单独指定；仅作用于原本带边框的窗口，不影响全屏画板与截图遮罩，隐藏后仍可用 Alt+Space 调出系统菜单。新增「画笔颜色插件安装提示」窗的边框开关（仅当安装了「自定义画笔颜色」插件时显示该项）。",
-      "tags": ["window", "frame", "ui"],
+      "tags": [
+        "window",
+        "frame",
+        "ui"
+      ],
       "category": "tools",
       "minHostVersion": "26.10.6",
       "size": 14774,
@@ -168,7 +199,12 @@
       "gitRef": "main",
       "author": "muqiu",
       "description": "在「墨迹选项」中鼠标右键点击、或触摸屏长按某个颜色色块，即可自定义该颜色（9 个普通色 + 6 个荧光笔色），并可指定启动时的默认画笔颜色。不安装本插件时软件内置颜色照常可用；插件被禁用或卸载后颜色自动恢复为内置默认。",
-      "tags": ["color", "pen", "palette", "ui"],
+      "tags": [
+        "color",
+        "pen",
+        "palette",
+        "ui"
+      ],
       "category": "tools",
       "minHostVersion": "26.10.6",
       "size": 15858,
@@ -182,6 +218,33 @@
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/pencolors/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/pencolors",
       "releasedAt": "2026-10-21T19:20:00Z"
+    },
+    {
+      "id": "ink-canvas.function-graph",
+      "name": "函数绘图",
+      "version": "1.0.0",
+      "gitRef": "main",
+      "author": "muqiu",
+      "description": "在「图形」面板新增「函数」项：手写或输入 f(x)（如 y=x^2、sin(x)），设置 x/y 轴最大范围与是否显示刻度，然后在画布上单击定原点、拖动右上角确定范围，即可绘制函数图像。",
+      "tags": [
+        "function",
+        "math",
+        "graph",
+        "ink"
+      ],
+      "category": "teaching",
+      "minHostVersion": "26.11.1",
+      "size": 24968,
+      "icon": "📈",
+      "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/functiongraph.icplugin",
+      "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/functiongraph.icplugin",
+      "checksum": {
+        "algorithm": "SHA256",
+        "value": "1F6F17DB0025E15CF5DC68D3DA7C6E8B8A62287AF21970165AEB41D91D254386"
+      },
+      "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/functiongraph/changelog.md",
+      "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/functiongraph",
+      "releasedAt": "2026-11-12T08:17:00Z"
     }
   ]
 }

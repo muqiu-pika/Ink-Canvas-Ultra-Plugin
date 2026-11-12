@@ -1,0 +1,10 @@
+﻿{
+  "id": "ink-canvas.function-graph",
+  "name": "函数绘图",
+  "version": "1.0.0",
+  "author": "muqiu",
+  "description": "在「图形」面板新增「函数」项：手写或输入 f(x)（如 y=x^2、sin(x)），设置 x/y 轴最大范围与是否显示刻度，然后在画布上单击定原点、拖动右上角确定范围，即可绘制函数图像。卸载插件后「图形」面板恢复原样。",
+  "entryAssembly": "FunctionGraphPlugin.dll",
+  "entryClass": "Ink_Canvas.Plugins.FunctionGraph.FunctionGraphPlugin",
+  "minHostVersion": "26.11.1"
+}

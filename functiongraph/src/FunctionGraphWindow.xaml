@@ -1,0 +1,78 @@
+<Window x:Class="Ink_Canvas.Plugins.FunctionGraph.FunctionGraphWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="函数绘图"
+        Width="580"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource PopupWindowBackground}"
+        Foreground="{DynamicResource PopupWindowForeground}"
+        Topmost="True"
+        ShowInTaskbar="False"
+        UseLayoutRounding="True">
+    <Border BorderBrush="{DynamicResource PopupWindowBorderBrush}" BorderThickness="1" Padding="18,14">
+        <StackPanel>
+            <TextBlock Text="手写函数（写完自动识别，也可直接在下面输入），对齐 Word「墨迹公式」体验："
+                       FontSize="13"
+                       Margin="0,0,0,6"
+                       Foreground="{DynamicResource PopupWindowForeground}" />
+
+            <Border BorderBrush="{DynamicResource PopupWindowBorderBrush}" BorderThickness="1"
+                    Height="150" Background="#18888888" CornerRadius="4">
+                <Grid>
+                    <InkCanvas x:Name="InkArea" Background="Transparent" />
+                    <TextBlock x:Name="InkHint"
+                               Text="在此区域内手写函数，如  y = x^2 、 sin(x) 、 1/x"
+                               Margin="10,8,0,0"
+                               FontSize="13"
+                               Foreground="#888888"
+                               IsHitTestVisible="False" />
+                </Grid>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                <Button Content="清空手写" Padding="10,3" Margin="0,0,8,0" Click="BtnClearInk_Click" />
+                <Button Content="重新识别" Padding="10,3" Click="BtnRecognize_Click" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <TextBlock Text="f(x) =  " VerticalAlignment="Center" FontSize="14"
+                           Foreground="{DynamicResource PopupWindowForeground}" />
+                <TextBox x:Name="ExpressionBox" Width="420" Height="28" VerticalContentAlignment="Center"
+                         FontSize="14" TextChanged="ExpressionBox_TextChanged" />
+            </StackPanel>
+
+            <TextBlock x:Name="StatusText" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"
+                       Foreground="{DynamicResource PopupWindowForeground}" />
+
+            <Grid Margin="0,10,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="70" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="70" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="x 轴最大范围：" VerticalAlignment="Center" FontSize="13"
+                           Foreground="{DynamicResource PopupWindowForeground}" />
+                <TextBox Grid.Column="1" x:Name="XMaxBox" Height="26" Text="5" VerticalContentAlignment="Center" />
+                <TextBlock Grid.Column="2" Text="  y 轴最大范围：" VerticalAlignment="Center" FontSize="13"
+                           Foreground="{DynamicResource PopupWindowForeground}" />
+                <TextBox Grid.Column="3" x:Name="YMaxBox" Height="26" Text="25" VerticalContentAlignment="Center" />
+                <CheckBox Grid.Column="4" x:Name="TicksCheck" Content="显示刻度" IsChecked="True"
+                          Margin="14,0,0,0" VerticalAlignment="Center" FontSize="13"
+                          Foreground="{DynamicResource PopupWindowForeground}" />
+            </Grid>
+
+            <TextBlock Text="# 范围决定渲染坐标域 [-xMax, xMax] × [-yMax, yMax]，元素右上角即 (xMax, yMax)。"
+                       FontSize="11" Margin="0,6,0,0"
+                       Foreground="{DynamicResource PopupWindowForeground}" />
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                <Button Content="确定" Padding="18,4" Margin="0,0,10,0" IsDefault="True" Click="BtnOk_Click" />
+                <Button Content="取消" Padding="18,4" IsCancel="True" Click="BtnCancel_Click" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>
