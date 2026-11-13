@@ -85,13 +85,31 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                     _suppressRecognize = true;
                     ExpressionBox.Text = normalized;
                     _suppressRecognize = false;
-                    StatusText.Text = "已识别：" + recognized;
+                    StatusText.Text = "已识别（系统手写引擎）：" + recognized;
                     StatusText.Foreground = TryGetForeground();
                 }
                 else
                 {
-                    StatusText.Text = "未能识别手写内容，请直接在 f(x) 框中手动输入（如 x^2、sin(x)、1/x）。";
-                    StatusText.Foreground = TryGetForeground();
+                    // 本机 InkAnalyzer 无可用文本识别器（Win8+ 暂存引擎不暴露给 .NET InkAnalyzer）
+                    // 时，降级到内置模板识别器（$1 算法、受限数学符号集、尺度旋转不变）
+                    var local = HandwritingMathRecognizer.Recognize(InkArea.Strokes, out string localDetail);
+                    if (!string.IsNullOrWhiteSpace(local))
+                    {
+                        var normalized = ExpressionParser.Normalize(local);
+                        _suppressRecognize = true;
+                        ExpressionBox.Text = normalized;
+                        _suppressRecognize = false;
+                        bool hasPlaceholder = normalized.Contains("?");
+                        StatusText.Text = hasPlaceholder
+                            ? "内置识别器识别出大部分符号（? 处未识别），请手动修正。"
+                            : "已识别（内置识别器，受限符号集），可在下方修正。";
+                        StatusText.Foreground = TryGetForeground();
+                    }
+                    else
+                    {
+                        StatusText.Text = "未能识别手写内容（" + localDetail + "），请直接在 f(x) 框中手动输入（如 x^2、sin(x)、1/x）。";
+                        StatusText.Foreground = TryGetForeground();
+                    }
                 }
             }
             catch (Exception ex)
