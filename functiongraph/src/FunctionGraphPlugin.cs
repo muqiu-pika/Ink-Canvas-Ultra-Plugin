@@ -122,8 +122,13 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             }
             catch (Exception ex)
             {
-                _host.Log("函数绘图：打开窗口失败 " + ex.Message, PluginLogLevel.Error);
-                _host.ShowNotification("函数绘图：打开窗口失败，详见日志");
+                _host.Log("函数绘图：打开窗口失败 " + ex, PluginLogLevel.Error);
+                // 窗口打不开多为插件程序集/资源损坏或未正确安装：通知里带上具体原因，
+                // 并自动跳转到插件工坊（设置中），便于用户重装/更新本插件
+                var reason = ex.Message;
+                if (reason.Length > 120) reason = reason.Substring(0, 120) + "…";
+                _host.ShowNotification("函数绘图：打开窗口失败（" + reason + "），正在打开插件工坊，可尝试重装本插件");
+                try { _host.TriggerRoute("settings:plugin-workshop"); } catch { }
             }
         }
     }
