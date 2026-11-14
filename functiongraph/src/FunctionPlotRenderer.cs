@@ -49,34 +49,67 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             var canvas = new Canvas { Width = width, Height = height, Background = Brushes.Transparent };
 
             Color axisColor = themeForeground;
-            Color gridColor = Blend(themeForeground, 0.25);
+            Color majorGridColor = Blend(themeForeground, 0.35);
+            Color minorGridColor = Blend(themeForeground, 0.18);
             Color tickColor = themeForeground;
+
+            int majorStep = ComputeMajorStep(pxPerUnit, dpiScale);
+            bool showMinorGrid = pxPerUnit >= 8;   // 1 单位小于 8px 时省略次网格，避免糊成一片
 
             double thickness = Math.Max(1, dpiScale);
             double curveThickness = Math.Max(1.5, 2 * dpiScale);
 
-            // 网格：数轴以 1 为一格
+            // 次网格：每 1 个坐标单位一格（单位像素过密时自动省略）
+            if (showMinorGrid)
+            {
+                for (int gx = (int)Math.Ceiling(-visibleX); gx <= (int)Math.Floor(visibleX); gx++)
+                {
+                    if (gx == 0 || gx % majorStep == 0) continue;
+                    double px = originX + gx * pxPerUnit;
+                    if (px < 0 || px > width) continue;
+                    canvas.Children.Add(new Line
+                    {
+                        X1 = px, Y1 = 0, X2 = px, Y2 = height,
+                        Stroke = MakeBrush(minorGridColor), StrokeThickness = Math.Max(0.5, 0.6 * dpiScale),
+                        IsHitTestVisible = false
+                    });
+                }
+                for (int gy = (int)Math.Ceiling(-visibleY); gy <= (int)Math.Floor(visibleY); gy++)
+                {
+                    if (gy == 0 || gy % majorStep == 0) continue;
+                    double py = originY - gy * pxPerUnit;
+                    if (py < 0 || py > height) continue;
+                    canvas.Children.Add(new Line
+                    {
+                        X1 = 0, Y1 = py, X2 = width, Y2 = py,
+                        Stroke = MakeBrush(minorGridColor), StrokeThickness = Math.Max(0.5, 0.6 * dpiScale),
+                        IsHitTestVisible = false
+                    });
+                }
+            }
+
+            // 主网格：每 majorStep 个坐标单位一格
             for (int gx = (int)Math.Ceiling(-visibleX); gx <= (int)Math.Floor(visibleX); gx++)
             {
-                if (gx == 0) continue;
+                if (gx == 0 || gx % majorStep != 0) continue;
                 double px = originX + gx * pxPerUnit;
                 if (px < 0 || px > width) continue;
                 canvas.Children.Add(new Line
                 {
                     X1 = px, Y1 = 0, X2 = px, Y2 = height,
-                    Stroke = MakeBrush(gridColor), StrokeThickness = Math.Max(0.6, 0.7 * dpiScale),
+                    Stroke = MakeBrush(majorGridColor), StrokeThickness = Math.Max(0.8, 0.8 * dpiScale),
                     IsHitTestVisible = false
                 });
             }
             for (int gy = (int)Math.Ceiling(-visibleY); gy <= (int)Math.Floor(visibleY); gy++)
             {
-                if (gy == 0) continue;
+                if (gy == 0 || gy % majorStep != 0) continue;
                 double py = originY - gy * pxPerUnit;
                 if (py < 0 || py > height) continue;
                 canvas.Children.Add(new Line
                 {
                     X1 = 0, Y1 = py, X2 = width, Y2 = py,
-                    Stroke = MakeBrush(gridColor), StrokeThickness = Math.Max(0.6, 0.7 * dpiScale),
+                    Stroke = MakeBrush(majorGridColor), StrokeThickness = Math.Max(0.8, 0.8 * dpiScale),
                     IsHitTestVisible = false
                 });
             }
@@ -95,16 +128,27 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 IsHitTestVisible = false
             });
 
-            // 刻度数字（可关）：只标整数格点，避开元素边缘
+            // 刻度（可关）：轴上短刻度线 + 主刻度整数数值标注，避开元素边缘
             if (request.ShowTicks && !isPreview)
             {
                 double fontSize = Math.Max(8, 10 * dpiScale);
-                double arrow = 10 * dpiScale;
+                double tickLength = Math.Max(4, 5 * dpiScale);
+                double margin = 12 * dpiScale;
+
                 for (int gx = (int)Math.Ceiling(-visibleX); gx <= (int)Math.Floor(visibleX); gx++)
                 {
-                    if (gx == 0) continue;
+                    if (gx == 0 || gx % majorStep != 0) continue;
                     double px = originX + gx * pxPerUnit;
-                    if (px < arrow || px > width - arrow) continue;
+                    if (px < margin || px > width - margin) continue;
+
+                    // x 轴上的刻度短线
+                    canvas.Children.Add(new Line
+                    {
+                        X1 = px, Y1 = originY - tickLength, X2 = px, Y2 = originY + tickLength,
+                        Stroke = MakeBrush(tickColor), StrokeThickness = Math.Max(1, 1.1 * dpiScale),
+                        IsHitTestVisible = false
+                    });
+
                     var label = new TextBlock
                     {
                         Text = gx.ToString(),
@@ -112,15 +156,25 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                         Foreground = MakeBrush(tickColor),
                         IsHitTestVisible = false
                     };
-                    Canvas.SetLeft(label, px - 5 * dpiScale);
-                    Canvas.SetTop(label, Math.Min(Math.Max(originY + 2 * dpiScale, 0), height - fontSize - 2));
+                    Canvas.SetLeft(label, px - fontSize * 0.4);
+                    Canvas.SetTop(label, Math.Min(Math.Max(originY + tickLength + 1 * dpiScale, 0), height - fontSize - 2));
                     canvas.Children.Add(label);
                 }
+
                 for (int gy = (int)Math.Ceiling(-visibleY); gy <= (int)Math.Floor(visibleY); gy++)
                 {
-                    if (gy == 0) continue;
+                    if (gy == 0 || gy % majorStep != 0) continue;
                     double py = originY - gy * pxPerUnit;
-                    if (py < arrow || py > height - arrow) continue;
+                    if (py < margin || py > height - margin) continue;
+
+                    // y 轴上的刻度短线
+                    canvas.Children.Add(new Line
+                    {
+                        X1 = originX - tickLength, Y1 = py, X2 = originX + tickLength, Y2 = py,
+                        Stroke = MakeBrush(tickColor), StrokeThickness = Math.Max(1, 1.1 * dpiScale),
+                        IsHitTestVisible = false
+                    });
+
                     var label = new TextBlock
                     {
                         Text = gy.ToString(),
@@ -128,7 +182,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                         Foreground = MakeBrush(tickColor),
                         IsHitTestVisible = false
                     };
-                    Canvas.SetLeft(label, Math.Max(originX - 22 * dpiScale, 1));
+                    Canvas.SetLeft(label, Math.Max(originX - tickLength - fontSize * 1.6, 1));
                     Canvas.SetTop(label, py - fontSize / 2);
                     canvas.Children.Add(label);
                 }
@@ -209,6 +263,22 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             }
 
             return canvas;
+        }
+
+        /// <summary>
+        /// 主刻度步长（数据单位）：按像素密度保证相邻主刻度不小于约 44 物理像素，
+        /// 步长取 1/2/5×10ⁿ 的"整齐"值，刻度数值标注为整数。
+        /// </summary>
+        private static int ComputeMajorStep(double pxPerUnit, double dpiScale)
+        {
+            double targetPx = Math.Max(44, 44 * dpiScale);
+            double raw = targetPx / Math.Max(pxPerUnit, 0.0001);
+            double magnitude = Math.Pow(10, Math.Floor(Math.Log10(Math.Max(raw, 1e-9))));
+            double nice = raw <= 1 * magnitude ? magnitude
+                        : raw <= 2 * magnitude ? 2 * magnitude
+                        : raw <= 5 * magnitude ? 5 * magnitude
+                        : 10 * magnitude;
+            return Math.Max(1, (int)Math.Ceiling(nice));
         }
 
         private static SolidColorBrush MakeBrush(Color c)
