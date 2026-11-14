@@ -6,5 +6,6 @@
   "description": "在「图形」面板新增「函数」项：可调用 Windows 原生「墨迹公式」（Math Input Control，与 Word 同源，支持分式 / 上下标 / 根号），也可直接在内置手写区书写。系统引擎缺失或位数不匹配时自动降级到纯托管内置识别，Windows 7 SP1 至 Windows 11 均可运行，不依赖 Office、不联网；语法约束候选解码自动纠正整式级误识别；手写区跟随特殊屏幕模式与触摸大小；确定后一次拖动完成放置。卸载插件后「图形」面板恢复原样。",
   "entryAssembly": "FunctionGraphPlugin.dll",
   "entryClass": "Ink_Canvas.Plugins.FunctionGraph.FunctionGraphPlugin",
+  "systemComponent": "MathRecognizer",
   "minHostVersion": "26.11.1"
 }

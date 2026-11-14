@@ -99,7 +99,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 _host.MainWindow.Deactivated += OnWindowDeactivated;
             }
 
-            _host.ShowNotification("函数绘图：按住并拖动一次即可放置（按下点为原点，Esc 取消）");
+            _host.ShowNotification("函数绘图：单击确定中心，Esc 取消");
         }
 
         public void Cancel()
@@ -125,6 +125,61 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             // 主动释放捕获时 WPF 会同步派发 Lost*Capture，不能把它误判成「拖拽中断」
             if (_releasingCaptures || _finished || _source == PlacementSource.None) return;
             Finish(true);
+        }
+
+        // ===== 两段式放置：第一段单击确定中心，第二段拖拽确定以中心对称的范围 =====
+
+        private bool _centerSet;
+        private FrameworkElement _centerMarker;
+
+        private void DrawCenterMarker()
+        {
+            try
+            {
+                RemoveCenterMarker();
+                double size = Math.Max(14, 12 * _dpiScale);
+                double t = Math.Max(1.5, 1.5 * _dpiScale);
+                var brush = new SolidColorBrush(_themeForeground);
+                brush.Freeze();
+
+                var hLine = new System.Windows.Shapes.Line
+                {
+                    X1 = _origin.X - size, Y1 = _origin.Y, X2 = _origin.X + size, Y2 = _origin.Y,
+                    Stroke = brush, StrokeThickness = t, IsHitTestVisible = false
+                };
+                var vLine = new System.Windows.Shapes.Line
+                {
+                    X1 = _origin.X, Y1 = _origin.Y - size, X2 = _origin.X, Y2 = _origin.Y + size,
+                    Stroke = brush, StrokeThickness = t, IsHitTestVisible = false
+                };
+                var circle = new System.Windows.Shapes.Ellipse
+                {
+                    Width = size, Height = size,
+                    Stroke = brush, StrokeThickness = t, IsHitTestVisible = false
+                };
+                System.Windows.Controls.Canvas.SetLeft(circle, _origin.X - size / 2);
+                System.Windows.Controls.Canvas.SetTop(circle, _origin.Y - size / 2);
+
+                var grid = new Grid { IsHitTestVisible = false };
+                grid.Children.Add(hLine);
+                grid.Children.Add(vLine);
+                grid.Children.Add(circle);
+                _centerMarker = grid;
+                System.Windows.Controls.Panel.SetZIndex(_centerMarker, 9998);
+                _canvas.Children.Add(_centerMarker);
+            }
+            catch { }
+        }
+
+        private void RemoveCenterMarker()
+        {
+            try
+            {
+                if (_centerMarker != null && _canvas.Children.Contains(_centerMarker))
+                    _canvas.Children.Remove(_centerMarker);
+            }
+            catch { }
+            _centerMarker = null;
         }
 
         // ===== 输入入口：单一输入源去重 =====
@@ -189,9 +244,20 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 return;
             }
 
+            // 第一段：单击确定中心（坐标系中心，固定不动）
+            if (!_centerSet)
+            {
+                _origin = point;
+                _centerSet = true;
+                DrawCenterMarker();
+                _host.ShowNotification("函数绘图：已确定中心，按住拖动确定范围，松手插入");
+                e.Handled = true;
+                return;
+            }
+
+            // 第二段：按住拖动，确定以中心对称的整体范围
             _source = source;
             _activeTouchDevice = device;
-            _origin = point;
 
             try
             {
@@ -215,10 +281,11 @@ namespace Ink_Canvas.Plugins.FunctionGraph
 
         private void HandleUp(PlacementSource source, Point point, TouchDevice device, InputEventArgs e)
         {
-            // 非本次拖拽来源的 Up（触摸提升的 MouseUp 等）不能触发提交，但要吞掉避免冒泡
-            if (_source != source)
+            // 放置会话内（未在拖拽中）的抬起一律吞掉：中心段的单击抬起、
+            // 非本次拖拽来源的 Up（触摸提升的 MouseUp 等）都不能冒泡到宿主画布
+            if (_source == PlacementSource.None)
             {
-                if (DateTime.Now < _suppressUntil) e.Handled = true;
+                e.Handled = true;
                 return;
             }
 
@@ -315,7 +382,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             Rect rect = ComputeRect(end);
             if (rect.Width < MinElementSize || rect.Height < MinElementSize)
             {
-                _host.ShowNotification("函数绘图：范围太小，已取消（重新点击工具可再来）");
+                _host.ShowNotification("函数绘图：范围太小，已取消");
                 return;
             }
 
@@ -355,6 +422,8 @@ namespace Ink_Canvas.Plugins.FunctionGraph
 
             try { ReleaseAllCaptures(); } catch { }
             try { RemovePreview(); } catch { }
+            try { RemoveCenterMarker(); } catch { }
+            _centerSet = false;
 
             try
             {

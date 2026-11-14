@@ -12,20 +12,9 @@
         UseLayoutRounding="True">
     <Border BorderBrush="{DynamicResource PopupWindowBorderBrush}" BorderThickness="1" Padding="18,14">
         <StackPanel>
-            <TextBlock Text="点击下方按钮打开 Windows 手写公式面板（与 Office「墨迹公式」同款引擎），"
-                       FontSize="13"
-                       Margin="0,0,0,2"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource PopupWindowForeground}" />
-            <TextBlock Text="手写完点面板右下角『插入』即可自动填入；也可以直接在 f(x) 框中输入表达式。"
-                       FontSize="13"
-                       Margin="0,0,0,8"
-                       TextWrapping="Wrap"
-                       Foreground="{DynamicResource PopupWindowForeground}" />
-
-            <Button x:Name="BtnSystemInk" Content="打开手写公式面板（中文）"
+            <Button x:Name="BtnSystemInk" Content="手写公式（墨迹公式）"
                     Padding="12,6" FontWeight="SemiBold" HorizontalAlignment="Left"
-                    MinWidth="240" Click="BtnSystemInk_Click" />
+                    MinWidth="220" Click="BtnSystemInk_Click" />
             <TextBlock x:Name="SystemInkHint" Margin="0,6,0,0" FontSize="11"
                        TextWrapping="Wrap" Foreground="#888888" />
 
@@ -59,7 +48,7 @@
                           Foreground="{DynamicResource PopupWindowForeground}" />
             </Grid>
 
-            <TextBlock Text="# 范围决定渲染坐标域 [-xMax, xMax] × [-yMax, yMax]，元素右上角即 (xMax, yMax)。"
+            <TextBlock Text="# 范围以中心对称，每格 1 单位。"
                        FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap"
                        Foreground="{DynamicResource PopupWindowForeground}" />
 

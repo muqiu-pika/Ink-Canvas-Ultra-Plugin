@@ -20,11 +20,11 @@ namespace Ink_Canvas.Plugins.FunctionGraph
     }
 
     /// <summary>
-    /// 函数图像渲染器：坐标域 [-xMax, xMax] × [-yMax, yMax]，
-    /// 原点在元素中心（对应画布上单击的"原点"位置），元素右上角即 (xMax, yMax)。
-    /// 两轴独立换算（pxPerUnitX = 半宽/xMax，pxPerUnitY = 半高/yMax），
-    /// 数轴均以 1 个坐标单位为一格，拖动右上角即直接映射 (xMax, yMax) 落点。
-    /// 曲线按像素步长采样，遇 NaN/∞/越界/渐近线跳变断开，不连成竖线；超界部分裁剪。
+    /// 函数图像渲染器：坐标系以元素中心为原点（对应画布上单击的"中心"位置）。
+    /// 两轴共用同一比例（pxPerUnit = min(半宽/xMax, 半高/yMax)），网格为正方形、
+    /// 以 1 个坐标单位为一格——两轴等比，图像不变形；实际可见范围不小于
+    /// [-xMax, xMax] × [-yMax, yMax]，超出元素边界的部分自然裁剪。
+    /// 曲线按像素步长采样，遇 NaN/∞/越界/渐近线跳变断开，不连成竖线。
     /// 输出元素为 Canvas + Line/Path/TextBlock（冻结画刷、无事件、无 x:Name），
     /// 可被宿主 XamlWriter 快照随白板保存/恢复。
     /// </summary>
@@ -38,8 +38,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         {
             double halfW = width / 2;
             double halfH = height / 2;
-            double pxPerUnitX = halfW / request.XMax;
-            double pxPerUnitY = halfH / request.YMax;
+            // 统一方格缩放：取两轴所需比例的较小者，保证每格 1 单位为正方形（图像不变形）
+            double pxPerUnit = Math.Min(halfW / request.XMax, halfH / request.YMax);
+            double visibleX = halfW / pxPerUnit;   // 实际可见的数据范围（≥ xMax）
+            double visibleY = halfH / pxPerUnit;   // ≥ yMax
 
             double originX = halfW;   // 元素内坐标：原点在中心
             double originY = halfH;
@@ -54,10 +56,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             double curveThickness = Math.Max(1.5, 2 * dpiScale);
 
             // 网格：数轴以 1 为一格
-            for (int gx = (int)Math.Ceiling(-request.XMax); gx <= (int)Math.Floor(request.XMax); gx++)
+            for (int gx = (int)Math.Ceiling(-visibleX); gx <= (int)Math.Floor(visibleX); gx++)
             {
                 if (gx == 0) continue;
-                double px = originX + gx * pxPerUnitX;
+                double px = originX + gx * pxPerUnit;
                 if (px < 0 || px > width) continue;
                 canvas.Children.Add(new Line
                 {
@@ -66,10 +68,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                     IsHitTestVisible = false
                 });
             }
-            for (int gy = (int)Math.Ceiling(-request.YMax); gy <= (int)Math.Floor(request.YMax); gy++)
+            for (int gy = (int)Math.Ceiling(-visibleY); gy <= (int)Math.Floor(visibleY); gy++)
             {
                 if (gy == 0) continue;
-                double py = originY - gy * pxPerUnitY;
+                double py = originY - gy * pxPerUnit;
                 if (py < 0 || py > height) continue;
                 canvas.Children.Add(new Line
                 {
@@ -98,10 +100,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             {
                 double fontSize = Math.Max(8, 10 * dpiScale);
                 double arrow = 10 * dpiScale;
-                for (int gx = (int)Math.Ceiling(-request.XMax); gx <= (int)Math.Floor(request.XMax); gx++)
+                for (int gx = (int)Math.Ceiling(-visibleX); gx <= (int)Math.Floor(visibleX); gx++)
                 {
                     if (gx == 0) continue;
-                    double px = originX + gx * pxPerUnitX;
+                    double px = originX + gx * pxPerUnit;
                     if (px < arrow || px > width - arrow) continue;
                     var label = new TextBlock
                     {
@@ -114,10 +116,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                     Canvas.SetTop(label, Math.Min(Math.Max(originY + 2 * dpiScale, 0), height - fontSize - 2));
                     canvas.Children.Add(label);
                 }
-                for (int gy = (int)Math.Ceiling(-request.YMax); gy <= (int)Math.Floor(request.YMax); gy++)
+                for (int gy = (int)Math.Ceiling(-visibleY); gy <= (int)Math.Floor(visibleY); gy++)
                 {
                     if (gy == 0) continue;
-                    double py = originY - gy * pxPerUnitY;
+                    double py = originY - gy * pxPerUnit;
                     if (py < arrow || py > height - arrow) continue;
                     var label = new TextBlock
                     {
@@ -150,24 +152,24 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                     var geometry = new StreamGeometry();
                     using (var ctx = geometry.Open())
                     {
-                        double dataStep = 1 / Math.Max(pxPerUnitX, 0.0001);
                         bool drawing = false;
                         Point last = default(Point);
                         double lastY = double.NaN;
                         double jumpThreshold = height * 1.5;   // 一个采样步内纵跨超过 1.5 倍高视为渐近线跳变
+                        double clipY = visibleY * 1.02;        // 纵向裁剪边界（数据单位），略放宽避免边界毛刺
 
                         for (double px = 0; px <= width; px += 1)
                         {
-                            double dataX = (px - originX) / pxPerUnitX;
+                            double dataX = (px - originX) / pxPerUnit;
                             double dataY = f(dataX);
-                            if (double.IsNaN(dataY) || double.IsInfinity(dataY) || Math.Abs(dataY) > request.YMax)
+                            if (double.IsNaN(dataY) || double.IsInfinity(dataY) || Math.Abs(dataY) > clipY)
                             {
                                 drawing = false;
                                 lastY = double.NaN;
                                 continue;
                             }
 
-                            var point = new Point(px, originY - dataY * pxPerUnitY);
+                            var point = new Point(px, originY - dataY * pxPerUnit);
                             if (!drawing)
                             {
                                 ctx.BeginFigure(point, false, false);

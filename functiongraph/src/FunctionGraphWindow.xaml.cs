@@ -35,13 +35,9 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             bool systemAvailable = SystemMathCapability.Status == SystemMathStatus.Available;
             BtnSystemInk.IsEnabled = systemAvailable;
             BtnSystemInk.ToolTip = systemAvailable
-                ? "打开 Windows 手写公式面板：手写公式后点『插入』，结果自动填入 f(x)"
+                ? "打开 Windows 手写公式面板，写完点『插入』自动填入"
                 : SystemMathCapability.Hint;
-            SystemInkHint.Text = systemAvailable
-                ? "系统引擎与 Word 墨迹公式同源，支持分式 / 上下标 / 根号，识别结果自动转为本插件的表达式。"
-                : "未检测到 Math Recognizer 可选功能（Windows 组件，非本插件）。可在「设置 → 应用 → 可选功能」"
-                  + "安装，或以管理员身份运行：" + SystemMathCapability.InstallHint
-                  + "。安装后重新打开本窗口即可手写；当前也可直接输入表达式。";
+            SystemInkHint.Text = systemAvailable ? "" : SystemMathCapability.Hint;
         }
 
         /// <summary>启动 Windows 原生 Math Input Control（与 Word「墨迹公式」同一识别引擎）。</summary>
@@ -64,11 +60,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 // 明确告知具体失败原因；MathRecognizer 是 Windows 可选功能（非插件），
                 // 未安装时可按提示安装，或直接在 f(x) 框手动输入
                 SetStatus("无法打开手写公式面板：" + failureReason
-                    + "。可安装 Math Recognizer 可选功能（管理员运行："
-                    + SystemMathCapability.InstallHint + "），或直接在 f(x) 框输入。", true);
+                    + "。安装方法见上方提示，或直接在 f(x) 框输入。", true);
                 return;
             }
-            SetStatus("手写公式面板已打开（中文界面）：写完点『插入』；点『取消 / 清除』会关闭面板。", false);
+            SetStatus("请在面板中书写，点『插入』自动填入", false);
         }
 
         private void OnSystemMathResult(string mathML)
@@ -98,7 +93,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         private void OnSystemMathCancelled()
         {
             _systemSession = null;
-            SetStatus("手写公式面板已关闭；可重新打开，或直接在 f(x) 框输入。", false);
+            SetStatus("面板已关闭", false);
         }
 
         private void SetStatus(string message, bool isError)
@@ -131,7 +126,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             string expression = ExpressionBox.Text;
             if (string.IsNullOrWhiteSpace(expression))
             {
-                ShowError("请打开手写公式面板手写，或直接输入表达式。");
+                ShowError("请输入表达式。");
                 return;
             }
 
@@ -139,7 +134,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             var compiled = ExpressionParser.Compile(expression, out error);
             if (compiled == null)
             {
-                ShowError("表达式无法解析：" + error + "。支持 x、+ - * / ^、括号、sin/cos/tan/cot/sqrt/abs/log/ln/exp、pi/e，可直接修改上方文本。");
+                ShowError("表达式无法解析：" + error + "。可直接修改上方文本。");
                 return;
             }
 
