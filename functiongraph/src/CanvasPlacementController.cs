@@ -56,6 +56,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
 
         public void Start()
         {
+            _request.Diag = "Start called";
             _canvas = _host.GetInkCanvas();
             if (_canvas == null)
             {
@@ -137,35 +138,45 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             try
             {
                 RemoveCenterMarker();
-                double size = Math.Max(14, 12 * _dpiScale);
+                double s = Math.Max(14, 12 * _dpiScale);
                 double t = Math.Max(1.5, 1.5 * _dpiScale);
                 var brush = new SolidColorBrush(_themeForeground);
                 brush.Freeze();
 
+                // 用 Canvas 承载标记（Grid 不响应 Canvas.SetLeft/SetTop，
+                // 否则圆圈会落在画布左上角而不是原点）；圆心 = 标记容器中心 = 原点
+                var container = new System.Windows.Controls.Canvas
+                {
+                    Width = s * 2,
+                    Height = s * 2,
+                    IsHitTestVisible = false
+                };
+
                 var hLine = new System.Windows.Shapes.Line
                 {
-                    X1 = _origin.X - size, Y1 = _origin.Y, X2 = _origin.X + size, Y2 = _origin.Y,
+                    X1 = 0, Y1 = s, X2 = s * 2, Y2 = s,
                     Stroke = brush, StrokeThickness = t, IsHitTestVisible = false
                 };
                 var vLine = new System.Windows.Shapes.Line
                 {
-                    X1 = _origin.X, Y1 = _origin.Y - size, X2 = _origin.X, Y2 = _origin.Y + size,
+                    X1 = s, Y1 = 0, X2 = s, Y2 = s * 2,
                     Stroke = brush, StrokeThickness = t, IsHitTestVisible = false
                 };
                 var circle = new System.Windows.Shapes.Ellipse
                 {
-                    Width = size, Height = size,
+                    Width = s * 0.7, Height = s * 0.7,
                     Stroke = brush, StrokeThickness = t, IsHitTestVisible = false
                 };
-                System.Windows.Controls.Canvas.SetLeft(circle, _origin.X - size / 2);
-                System.Windows.Controls.Canvas.SetTop(circle, _origin.Y - size / 2);
+                System.Windows.Controls.Canvas.SetLeft(circle, s - s * 0.35);
+                System.Windows.Controls.Canvas.SetTop(circle, s - s * 0.35);
 
-                var grid = new Grid { IsHitTestVisible = false };
-                grid.Children.Add(hLine);
-                grid.Children.Add(vLine);
-                grid.Children.Add(circle);
-                _centerMarker = grid;
+                container.Children.Add(hLine);
+                container.Children.Add(vLine);
+                container.Children.Add(circle);
+                _centerMarker = container;
                 System.Windows.Controls.Panel.SetZIndex(_centerMarker, 9998);
+                System.Windows.Controls.Canvas.SetLeft(_centerMarker, _origin.X - s);
+                System.Windows.Controls.Canvas.SetTop(_centerMarker, _origin.Y - s);
                 _canvas.Children.Add(_centerMarker);
             }
             catch { }
@@ -249,6 +260,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             {
                 _origin = point;
                 _centerSet = true;
+                _request.Diag = "center set at " + Math.Round(point.X, 1) + "," + Math.Round(point.Y, 1);
                 DrawCenterMarker();
                 _host.ShowNotification("函数绘图：已确定中心，按住拖动确定范围，松手插入");
                 e.Handled = true;
@@ -258,6 +270,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             // 第二段：按住拖动，确定以中心对称的整体范围
             _source = source;
             _activeTouchDevice = device;
+            _request.Diag = "drag started";
 
             try
             {
@@ -380,6 +393,8 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         private void Commit(Point end)
         {
             Rect rect = ComputeRect(end);
+            _request.Diag = "commit rect=" + Math.Round(rect.Left, 1) + "," + Math.Round(rect.Top, 1)
+                + " " + Math.Round(rect.Width, 1) + "x" + Math.Round(rect.Height, 1);
             if (rect.Width < MinElementSize || rect.Height < MinElementSize)
             {
                 _host.ShowNotification("函数绘图：范围太小，已取消");
@@ -393,12 +408,17 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 InkCanvas.SetLeft(element, rect.Left);
                 InkCanvas.SetTop(element, rect.Top);
                 _canvas.Children.Add(element);
+                _request.Diag += " | afterSet: GetLeft=" + InkCanvas.GetLeft(element)
+                    + " GetTop=" + InkCanvas.GetTop(element)
+                    + " elementSize=" + Math.Round(element.Width, 1) + "x" + Math.Round(element.Height, 1);
+                _request.Diag = "inserted at " + Math.Round(rect.Left, 1) + "," + Math.Round(rect.Top, 1);
                 _host.CommitElementInsertHistory(element);
                 _host.ShowNotification("函数图像已插入，可拖动/缩放/删除");
             }
             catch (Exception ex)
             {
-                _host.Log("函数绘图：插入图像失败 " + ex.Message, PluginLogLevel.Error);
+                _request.Diag = "insert EXC: " + ex.Message;
+                _host.Log("函数绘图：插入图像失败 " + ex, PluginLogLevel.Error);
             }
         }
 

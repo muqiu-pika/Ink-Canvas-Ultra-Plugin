@@ -19,6 +19,8 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         private IPluginHost _host;
         private CanvasPlacementController _placement;
         private DateTime _lastToolActivationUtc = DateTime.MinValue;
+        private bool _toolPressing;
+        private bool _toolTouchPressing;
 
         public void Initialize(IPluginHost host)
         {
@@ -92,10 +94,25 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 ToolTip = "函数：手写 f(x) 并在画布上放置函数图像"
             };
 
-            border.MouseUp += (s, e) => OpenGraphWindow();
+            // 与宿主自家图形按钮一致：必须先在同一元素上按下，松开才生效——
+            // 否则图形面板展开/收起时，面板开关按钮的"松开"动作恰好落在
+            // 本按钮上方（面板末行紧贴面板开关），会导致窗口"自动"打开
+            border.MouseDown += (s, e) =>
+            {
+                if (e.ChangedButton == MouseButton.Left) _toolPressing = true;
+            };
+            border.MouseUp += (s, e) =>
+            {
+                if (!_toolPressing || e.ChangedButton != MouseButton.Left) return;
+                _toolPressing = false;
+                OpenGraphWindow();
+            };
+            border.TouchDown += (s, e) => _toolTouchPressing = true;
             border.TouchUp += (s, e) =>
             {
                 e.Handled = true;
+                if (!_toolTouchPressing) return;
+                _toolTouchPressing = false;
                 OpenGraphWindow();
             };
             return border;

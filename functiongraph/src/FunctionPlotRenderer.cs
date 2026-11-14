@@ -18,6 +18,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         public double YMax;
         public bool ShowTicks;
         public bool ShowGrid;
+        public string Diag;
     }
 
     /// <summary>
@@ -35,6 +36,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
     /// </summary>
     internal static class FunctionPlotRenderer
     {
+        public static string BuildMarker = "RENDERER_V2_ADAPTIVE_TICKS";
         /// <param name="themeForeground">解析自宿主主题的实心前景色（跟随创建时主题，可持久化）</param>
         /// <param name="dpiScale">DPI 缩放，用于线宽换算</param>
         public static FrameworkElement Build(
