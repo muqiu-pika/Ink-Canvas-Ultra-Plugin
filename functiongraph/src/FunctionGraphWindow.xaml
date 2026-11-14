@@ -10,25 +10,25 @@
         Topmost="True"
         ShowInTaskbar="False"
         UseLayoutRounding="True">
-    <Border BorderBrush="{DynamicResource PopupWindowBorderBrush}" BorderThickness="1" Padding="18,14">
+    <Border BorderBrush="{DynamicResource PopupWindowBorderBrush}" BorderThickness="1" Padding="14,10">
         <StackPanel>
             <Button x:Name="BtnSystemInk" Content="手写公式（墨迹公式）"
                     Padding="12,6" FontWeight="SemiBold" HorizontalAlignment="Left"
                     MinWidth="220" Click="BtnSystemInk_Click" />
-            <TextBlock x:Name="SystemInkHint" Margin="0,6,0,0" FontSize="11"
+            <TextBlock x:Name="SystemInkHint" Margin="0,4,0,0" FontSize="11"
                        TextWrapping="Wrap" Foreground="#888888" />
 
-            <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <TextBlock Text="f(x) =  " VerticalAlignment="Center" FontSize="14"
                            Foreground="{DynamicResource PopupWindowForeground}" />
                 <TextBox x:Name="ExpressionBox" Width="440" Height="28" VerticalContentAlignment="Center"
                          FontSize="14" TextChanged="ExpressionBox_TextChanged" />
             </StackPanel>
 
-            <TextBlock x:Name="StatusText" FontSize="12" Margin="0,4,0,0" TextWrapping="Wrap"
+            <TextBlock x:Name="StatusText" FontSize="12" Margin="0,3,0,0" TextWrapping="Wrap"
                        Foreground="{DynamicResource PopupWindowForeground}" />
 
-            <Grid Margin="0,10,0,0">
+            <Grid Margin="0,8,0,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
                     <ColumnDefinition Width="70" />
@@ -51,11 +51,7 @@
                           Foreground="{DynamicResource PopupWindowForeground}" />
             </Grid>
 
-            <TextBlock Text="# 范围以中心对称，每格 1 单位。"
-                       FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap"
-                       Foreground="{DynamicResource PopupWindowForeground}" />
-
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,8,0,0">
                 <Button Content="确定" Padding="18,4" Margin="0,0,10,0" IsDefault="True" Click="BtnOk_Click" />
                 <Button Content="取消" Padding="18,4" IsCancel="True" Click="BtnCancel_Click" />
             </StackPanel>

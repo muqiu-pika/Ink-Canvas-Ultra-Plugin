@@ -194,30 +194,31 @@
     },
     {
       "id": "ink-canvas.pen-colors",
-      "name": "自定义画笔颜色",
-      "version": "1.0.0",
+      "name": "自定义颜色",
+      "version": "1.2.1",
       "gitRef": "main",
       "author": "muqiu",
-      "description": "在「墨迹选项」中鼠标右键点击、或触摸屏长按某个颜色色块，即可自定义该颜色（9 个普通色 + 6 个荧光笔色），并可指定启动时的默认画笔颜色。不安装本插件时软件内置颜色照常可用；插件被禁用或卸载后颜色自动恢复为内置默认。",
+      "description": "自定义「墨迹选项」里的画笔与荧光笔颜色、启动时的默认画笔颜色，并可自定义画布底色。取色使用软件统一风格的颜色选择窗口（Mica 毛玻璃、圆角卡片，支持鼠标与触摸、HEX/RGB 输入、预设色板）。不安装本插件时软件内置的 9 个普通色与 6 个荧光笔色照常可用；插件被禁用或卸载后颜色与画布底色自动恢复为内置默认。",
       "tags": [
         "color",
         "pen",
         "palette",
+        "canvas",
         "ui"
       ],
       "category": "tools",
-      "minHostVersion": "26.10.6",
-      "size": 15858,
+      "minHostVersion": "26.11.1",
+      "size": 18101,
       "icon": "🎨",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/pencolors.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/pencolors.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "28B302D8734F8C1ACEA89C98F32960BE0AEAB449A35A430FAB012F61EF5AFF5A"
+        "value": "57D39A053DC8F40809C685E18F5AD4B17CC729AC4F493DA587B9CF9367623997"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/pencolors/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/pencolors",
-      "releasedAt": "2026-10-21T19:20:00Z"
+      "releasedAt": "2026-11-14T20:24:00Z"
     },
     {
       "id": "ink-canvas.function-graph",
@@ -234,13 +235,13 @@
       ],
       "category": "teaching",
       "minHostVersion": "26.11.1",
-      "size": 36941,
+      "size": 37406,
       "icon": "📈",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/functiongraph.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/functiongraph.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "03C2B660034423ACEBAADABAF3D208535DAC30B3F8F9F6877F12B1D437EF72D7"
+        "value": "DB80618992972AF31175E893BD238CD80F25C925BAEE0C72478EC96BF9541B3E"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/functiongraph/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/functiongraph",
