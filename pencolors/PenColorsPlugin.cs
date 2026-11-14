@@ -29,6 +29,9 @@ namespace Ink_Canvas.Plugins.PenColors
 
         private ComboBox _defaultCombo;
         private TextBlock _currentColorText;
+        private Border _canvasSwatch;
+        private TextBlock _canvasValueText;
+        private Button _canvasResetButton;
         private bool _suppressUiEvents;
 
         private sealed class SlotRowUi
@@ -49,15 +52,16 @@ namespace Ink_Canvas.Plugins.PenColors
         public PluginManifest Manifest { get; } = new PluginManifest
         {
             Id = "ink-canvas.pen-colors",
-            Name = "自定义画笔颜色",
-            Version = "1.0.0",
+            Name = "自定义颜色",
+            Version = "1.2.1",
             Author = "muqiu",
-            Description = "自定义「墨迹选项」里的画笔与荧光笔颜色，并可指定启动时的默认画笔颜色。" +
-                          "不安装本插件时软件内置的 9 个普通色与 6 个荧光笔色照常可用；" +
-                          "插件被禁用或卸载后颜色自动恢复为内置默认。",
+            Description = "自定义「墨迹选项」里的画笔与荧光笔颜色、启动时的默认画笔颜色，并可设置画布底色。" +
+                          "取色使用软件统一风格的颜色选择窗口（支持鼠标与触摸、HEX/RGB/预设色板）。" +
+                          "不安装本插件时软件内置的 9 个普通色与 6 个荧光笔色照常可用，" +
+                          "画布底色的预设与自定义也不依赖本插件；插件被禁用或卸载后画笔颜色恢复为内置默认。",
             EntryAssembly = "PenColorsPlugin.dll",
             EntryClass = "Ink_Canvas.Plugins.PenColors.PenColorsPlugin",
-            MinHostVersion = "26.10.6"
+            MinHostVersion = "26.11.1"
         };
 
         private string ConfigPath
@@ -93,7 +97,7 @@ namespace Ink_Canvas.Plugins.PenColors
             try
             {
                 var mw = host.MainWindow;
-                Action reapply = () => { ApplyOverrides(); ApplyDefaultIndex(); };
+                Action reapply = () => { ApplyOverrides(); ApplyDefaultIndex(); ReapplyCanvasBackgroundFromHost(); };
                 if (mw != null && mw.IsLoaded) Application.Current.Dispatcher.BeginInvoke(reapply);
                 else if (mw != null) mw.Loaded += (s, e) => Application.Current.Dispatcher.BeginInvoke(reapply);
                 else Application.Current.Dispatcher.BeginInvoke(reapply);
@@ -101,18 +105,55 @@ namespace Ink_Canvas.Plugins.PenColors
             catch { }
 
             try { _host.PenColorsChanged += Host_PenColorsChanged; } catch { }
+
+            // 主程序侧的画布底色变化（弹窗里点预设、自定义取色、恢复默认）需要同步回落盘配置，
+            // 否则重启后底色会退回上一次存盘的值
+            try { _host.CanvasBackgroundChanged += Host_CanvasBackgroundChanged; } catch { }
         }
 
         public void Shutdown()
         {
             try { if (_host != null) _host.PenSlotEditRequested -= Host_PenSlotEditRequested; } catch { }
             try { if (_host != null) _host.PenColorsChanged -= Host_PenColorsChanged; } catch { }
+            try { if (_host != null) _host.CanvasBackgroundChanged -= Host_CanvasBackgroundChanged; } catch { }
 
             // 恢复全部内置颜色：保证插件被禁用/卸载后调色板仍是软件自带的 9 + 6 色
             try { _host?.ResetPenColors(); } catch { }
             try { _host?.UnregisterSettingsPanel(); } catch { }
 
             _host = null;
+        }
+
+        /// <summary>
+        /// 主程序侧的画布底色变化（画布弹窗里点预设、自定义取色、恢复默认）。
+        /// 底色由主程序自己持久化到 Settings，插件只做面板刷新，不参与存储——
+        /// 只有一处数据源，避免插件配置与主设置互相覆盖。
+        /// </summary>
+        private void Host_CanvasBackgroundChanged(object sender, EventArgs e)
+        {
+            try { Application.Current.Dispatcher.BeginInvoke((Action)RefreshPanelVisuals); } catch { }
+        }
+
+        /// <summary>
+        /// 主窗口 Loaded 后让宿主把当前底色重新应用一次。
+        /// 启动早期插件的开关/面板尚未就绪，重放一次能保证首屏底色与设置一致。
+        /// </summary>
+        private void ReapplyCanvasBackgroundFromHost()
+        {
+            try
+            {
+                if (_host == null) return;
+                if (!_host.IsCanvasBackgroundCustomized) return;
+                _host.SetCanvasBackgroundColor(_host.CanvasBackgroundColor);
+            }
+            catch { }
+        }
+
+        /// <summary>画布底色是否已被用户自定义（直接问宿主，插件不再自己存一份）</summary>
+        private bool IsHostCanvasCustomized()
+        {
+            try { return _host != null && _host.IsCanvasBackgroundCustomized; } catch { }
+            return false;
         }
 
         private void Host_PenColorsChanged(object sender, EventArgs e)
@@ -194,6 +235,9 @@ namespace Ink_Canvas.Plugins.PenColors
             _slotRows.Clear();
             _defaultCombo = null;
             _currentColorText = null;
+            _canvasSwatch = null;
+            _canvasValueText = null;
+            _canvasResetButton = null;
 
             var root = new StackPanel { MinWidth = 360, MaxWidth = 780 };
 
@@ -242,6 +286,10 @@ namespace Ink_Canvas.Plugins.PenColors
             root.Children.Add(defaultRow);
 
             root.Children.Add(new Separator { Margin = new Thickness(0, 12, 0, 6) });
+            root.Children.Add(MakeSectionTitle("画布底色"));
+            root.Children.Add(BuildCanvasBackgroundRow());
+
+            root.Children.Add(new Separator { Margin = new Thickness(0, 12, 0, 6) });
             root.Children.Add(MakeSectionTitle("画笔颜色"));
 
             var slotsAll = SafeGetSlots();
@@ -281,6 +329,137 @@ namespace Ink_Canvas.Plugins.PenColors
             try { Application.Current.Dispatcher.BeginInvoke((Action)RefreshPanelVisuals); } catch { }
 
             return root;
+        }
+
+        private UIElement BuildCanvasBackgroundRow()
+        {
+            var wrap = new StackPanel { Margin = new Thickness(0, 2, 0, 2) };
+
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            _canvasSwatch = new Border
+            {
+                Width = 22,
+                Height = 22,
+                CornerRadius = new CornerRadius(4),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(0x66, 0x80, 0x80, 0x80)),
+                Background = new SolidColorBrush(ResolveCanvasBackground()),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var label = new TextBlock
+            {
+                Text = "画布",
+                Width = 72,
+                FontSize = 13,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(10, 0, 4, 0)
+            };
+
+            _canvasValueText = new TextBlock
+            {
+                Text = CanvasBackgroundText(),
+                Width = 66,
+                FontSize = 12,
+                Opacity = 0.75,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+
+            var pickButton = new Button
+            {
+                Content = "选择颜色…",
+                Padding = new Thickness(10, 3, 10, 3),
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            pickButton.Click += (s, e) => OnPickCanvasBackground();
+
+            _canvasResetButton = new Button
+            {
+                Content = "恢复默认",
+                Padding = new Thickness(10, 3, 10, 3),
+                FontSize = 12,
+                Margin = new Thickness(6, 0, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center,
+                IsEnabled = IsHostCanvasCustomized()
+            };
+            _canvasResetButton.Click += (s, e) => OnResetCanvasBackground();
+
+            row.Children.Add(_canvasSwatch);
+            row.Children.Add(label);
+            row.Children.Add(_canvasValueText);
+            row.Children.Add(pickButton);
+            row.Children.Add(_canvasResetButton);
+
+            wrap.Children.Add(row);
+            wrap.Children.Add(MakeNote(
+                "画布底色会同时影响方格纸网格线颜色、界面亮暗与默认笔色（后两者按底色亮度自动适配）。" +
+                "白板栏「画布」按钮弹出的面板里也能直接选底色。"));
+            return wrap;
+        }
+
+        private Color ResolveCanvasBackground()
+        {
+            try
+            {
+                if (_host != null) return _host.CanvasBackgroundColor;
+            }
+            catch { }
+            return Color.FromRgb(0xF2, 0xF2, 0xF2);
+        }
+
+        private string CanvasBackgroundText()
+        {
+            return IsHostCanvasCustomized() ? ColorToHex(ResolveCanvasBackground()) : "默认";
+        }
+
+        private void OnPickCanvasBackground()
+        {
+            try
+            {
+                Color current = ResolveCanvasBackground();
+                Color? picked = null;
+                bool hostPickerUsable = true;
+                try
+                {
+                    if (_host != null)
+                    {
+                        picked = _host.PickColor(
+                            current,
+                            "画布颜色",
+                            "选择画布底色。网格线、界面明暗与默认笔色会跟随底色亮度自动适配。");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    hostPickerUsable = false;
+                    try { _host?.Log("自定义颜色: 画布底色取色器不可用，回退系统取色器 | " + ex.Message, PluginLogLevel.Info); } catch { }
+                }
+
+                if (!hostPickerUsable) picked = PickWithSystemDialog(current);
+                if (!picked.HasValue) return;
+
+                // 交给宿主应用与持久化，插件不另存一份
+                try { _host?.SetCanvasBackgroundColor(picked.Value); } catch { }
+                RefreshPanelVisuals();
+            }
+            catch (Exception ex)
+            {
+                try { _host?.Log("自定义颜色: 设置画布底色失败 " + ex, PluginLogLevel.Warning); } catch { }
+                try { _host?.ShowNotification("设置画布底色失败：" + ex.Message); } catch { }
+            }
+        }
+
+        private void OnResetCanvasBackground()
+        {
+            try { _host?.ResetCanvasBackgroundColor(); } catch { }
+            RefreshPanelVisuals();
         }
 
         private UIElement BuildSlotRow(PenColorSlotInfo slot)
@@ -365,43 +544,88 @@ namespace Ink_Canvas.Plugins.PenColors
         {
             // 入口日志：设备上反馈"右键没弹出调色框"时，先看这里有没有出现——
             // 没出现=事件没到插件（宿主版本/手势挂载问题）；出现了=取色器本身打开失败
-            try { _host?.Log($"自定义画笔颜色: 打开取色器 slot={index}", PluginLogLevel.Info); } catch { }
+            try { _host?.Log($"自定义颜色: 打开取色器 slot={index}", PluginLogLevel.Info); } catch { }
+
             try
             {
-                var current = ResolveSlotColor(index);
+                Color current = ResolveSlotColor(index);
+                string slotName = GetSlotName(index);
+
+                Color? picked = null;
+                bool hostPickerUsable = true;
+                try
+                {
+                    // 软件统一风格的取色窗口：Mica + 圆角卡片 + Fluent 图标，鼠标/触摸均支持，
+                    // 与截图选项框、设置页保持同一套视觉；不再弹 Win95 风格的系统调色板
+                    if (_host != null)
+                    {
+                        picked = _host.PickColor(
+                            current,
+                            "画笔颜色 · " + slotName,
+                            "自定义「" + slotName + "」的显示颜色与落笔颜色。亮色/暗色主题下同时生效。");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 旧版宿主接口上没有 PickColor（运行时 MissingMethodException）：
+                    // 记录后回退到系统取色器，保证老版本软件上功能不至于完全失效
+                    hostPickerUsable = false;
+                    picked = null;
+                    try { _host?.Log("自定义颜色: 宿主取色窗口不可用，回退系统取色器 | " + ex.Message, PluginLogLevel.Info); } catch { }
+                }
+
+                if (!hostPickerUsable) picked = PickWithSystemDialog(current);
+
+                // null = 用户取消（含旧宿主下系统对话框的取消），直接结束
+                if (!picked.HasValue) return;
+
+                Color chosen = picked.Value;
+                _overrides[index] = chosen;
+                SaveConfig();
+
+                bool ok = false;
+                try { ok = _host != null && _host.SetPenColorSlot(index, chosen); } catch { }
+                if (!ok)
+                {
+                    try { _host?.ShowNotification("主程序版本过低，无法应用自定义颜色（需要 26.11.1 及以上）"); } catch { }
+                }
+
+                RefreshPanelVisuals();
+            }
+            catch (Exception ex)
+            {
+                // 失败必须可见：之前只写日志，用户看到的就是"点了没反应"
+                try { _host?.Log("自定义颜色: 取色失败 " + ex, PluginLogLevel.Warning); } catch { }
+                try { _host?.ShowNotification("取色失败：" + ex.Message); } catch { }
+            }
+        }
+
+        /// <summary>旧版宿主兜底：系统取色对话框（仅在宿主不支持 PickColor 时使用）</summary>
+        private Color? PickWithSystemDialog(Color current)
+        {
+            try
+            {
                 using (var dialog = new WinForms.ColorDialog())
                 {
                     dialog.FullOpen = true;
                     dialog.AnyColor = true;
                     dialog.Color = Drawing.Color.FromArgb(current.R, current.G, current.B);
                     // 必须给对话框指定宿主主窗口为 owner：浮动栏是 Topmost 窗口，
-                    // 无 owner 的系统取色器会开到它后面，用户看到的就是“右键/长按无反应”
+                    // 无 owner 的系统取色器会开到它后面，用户看到的就是"右键/长按无反应"
                     var owner = GetMainWindowHandle();
                     WinForms.DialogResult result = owner != IntPtr.Zero
                         ? dialog.ShowDialog(new WindowWrapper(owner))
                         : dialog.ShowDialog();
-                    if (result != WinForms.DialogResult.OK) return;
+                    if (result != WinForms.DialogResult.OK) return null;
 
-                    var picked = Color.FromRgb(dialog.Color.R, dialog.Color.G, dialog.Color.B);
-                    _overrides[index] = picked;
-                    SaveConfig();
-
-                    bool ok = false;
-                    try { ok = _host != null && _host.SetPenColorSlot(index, picked); } catch { }
-                    if (!ok)
-                    {
-                        try { _host?.ShowNotification("主程序版本过低，无法应用自定义颜色（需要 26.10.6 及以上）"); } catch { }
-                    }
-
-                    RefreshPanelVisuals();
+                    return Color.FromRgb(dialog.Color.R, dialog.Color.G, dialog.Color.B);
                 }
             }
             catch (Exception ex)
             {
-                // 失败必须可见：部分精简系统/策略限制会让 ColorDialog 构造直接抛异常，
-                // 之前只写日志，用户看到的就是"点了没反应"
-                try { _host?.Log("自定义画笔颜色: 取色器打开失败 " + ex, PluginLogLevel.Warning); } catch { }
+                try { _host?.Log("自定义颜色: 系统取色器打开失败 " + ex, PluginLogLevel.Warning); } catch { }
                 try { _host?.ShowNotification("取色器打开失败：" + ex.Message); } catch { }
+                return null;
             }
         }
 
@@ -462,6 +686,21 @@ namespace Ink_Canvas.Plugins.PenColors
                     {
                         row.ResetButton.IsEnabled = IsCustomized(row.Index);
                     }
+                }
+
+                if (_canvasSwatch != null)
+                {
+                    var canvasBrush = new SolidColorBrush(ResolveCanvasBackground());
+                    if (canvasBrush.CanFreeze) canvasBrush.Freeze();
+                    _canvasSwatch.Background = canvasBrush;
+                }
+                if (_canvasValueText != null)
+                {
+                    _canvasValueText.Text = CanvasBackgroundText();
+                }
+                if (_canvasResetButton != null)
+                {
+                    _canvasResetButton.IsEnabled = IsHostCanvasCustomized();
                 }
 
                 if (_defaultCombo != null)

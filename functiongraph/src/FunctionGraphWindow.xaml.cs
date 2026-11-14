@@ -24,11 +24,18 @@ namespace Ink_Canvas.Plugins.FunctionGraph
 
         private bool _suppressTextEvent;
         private SystemMathRecognizer _systemSession;
+        private readonly IPluginHost _host;
 
         /// <summary>host 可为 null（独立探针/设计器实例化）。</summary>
         public FunctionGraphWindow(IPluginHost host = null)
         {
             InitializeComponent();
+            _host = host;
+
+            // 窗口关闭/确定/取消时必须先收尾系统手写会话：
+            // 控件窗口的 owner 是本窗口的 HWND，本窗口销毁后控件状态失效，
+            // 之后再从 GC 终结器里 Release 容易在原生侧崩溃
+            Closing += FunctionGraphWindow_Closing;
 
             // 系统数学识别器是按需安装的 Windows 可选功能：检测到才启用手写面板按钮，
             // 未检测到时给出明确的安装指引（f(x) 手动输入始终可用）。
@@ -38,6 +45,23 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 ? "打开 Windows 手写公式面板，写完点『插入』自动填入"
                 : SystemMathCapability.Hint;
             SystemInkHint.Text = systemAvailable ? "" : SystemMathCapability.Hint;
+        }
+
+        private void FunctionGraphWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            try
+            {
+                if (_systemSession != null)
+                {
+                    _host?.Log("函数绘图：窗口关闭，收尾手写会话", PluginLogLevel.Info);
+                    _systemSession.Dispose();
+                    _systemSession = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _host?.Log("函数绘图：关闭手写会话失败 " + ex.Message, PluginLogLevel.Warning);
+            }
         }
 
         /// <summary>启动 Windows 原生 Math Input Control（与 Word「墨迹公式」同一识别引擎）。</summary>
@@ -57,22 +81,34 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             _systemSession = SystemMathRecognizer.TryStart(owner, OnSystemMathResult, OnSystemMathCancelled, out failureReason);
             if (_systemSession == null)
             {
+                _host?.Log("函数绘图：打开系统手写面板失败 " + failureReason, PluginLogLevel.Warning);
                 // 明确告知具体失败原因；MathRecognizer 是 Windows 可选功能（非插件），
                 // 未安装时可按提示安装，或直接在 f(x) 框手动输入
                 SetStatus("无法打开手写公式面板：" + failureReason
                     + "。安装方法见上方提示，或直接在 f(x) 框输入。", true);
                 return;
             }
+            _host?.Log("函数绘图：系统手写面板已打开", PluginLogLevel.Info);
             SetStatus("请在面板中书写，点『插入』自动填入", false);
         }
 
         private void OnSystemMathResult(string mathML)
         {
             _systemSession = null;
+
+            // 防御：事件回调统一在 UI 线程执行；万一宿主版本把回调送到别的线程，
+            // 这里再兜一次，避免更新 WPF 控件时抛跨线程异常
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.BeginInvoke(new Action(() => OnSystemMathResult(mathML)));
+                return;
+            }
+
             string error;
             string expression = MathMLConverter.ToExpression(mathML, out error);
             if (expression == null)
             {
+                _host?.Log("函数绘图：MathML 转换失败 " + error, PluginLogLevel.Warning);
                 SetStatus("系统识别结果无法转为函数：" + error + "。请直接修改下方文本。", true);
                 return;
             }
@@ -84,6 +120,9 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             ExpressionBox.Text = expression;
             _suppressTextEvent = false;
 
+            _host?.Log("函数绘图：系统识别结果 " + expression
+                + (parseable ? "" : "（需修正：" + compileError + "）"), PluginLogLevel.Info);
+
             SetStatus(parseable
                 ? "已由 Windows 墨迹公式识别：" + expression
                 : "已由 Windows 墨迹公式识别，但表达式需修正：" + compileError,
@@ -93,6 +132,11 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         private void OnSystemMathCancelled()
         {
             _systemSession = null;
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.BeginInvoke(new Action(OnSystemMathCancelled));
+                return;
+            }
             SetStatus("面板已关闭", false);
         }
 

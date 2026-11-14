@@ -46,6 +46,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         private EventSink _sink;
         private int _cookie;
         private bool _finished;
+        /// <summary>COM 事件回调是否正在栈上（此期间绝不能同步 Release/Unadvise）</summary>
+        private volatile bool _inEventCallback;
+        /// <summary>创建控件时的 UI 线程调度器：事件回调统一回到该线程执行</summary>
+        private Dispatcher _uiDispatcher;
         private DispatcherTimer _timeout;
         private Action<string> _onResult;
         private Action _onCancelled;
@@ -61,7 +65,8 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             var session = new SystemMathRecognizer
             {
                 _onResult = onResult,
-                _onCancelled = onCancelled
+                _onCancelled = onCancelled,
+                _uiDispatcher = Dispatcher.CurrentDispatcher
             };
             // 面板 UI 资源按线程 UI 语言加载：临时切到 zh-CN，让按钮/提示为中文，
             // Show 完成后恢复原线程文化（失败路径在 finally 中统一恢复）
@@ -210,17 +215,17 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             if (_finished) return;
             _finished = true;
             StopTimer();
+            // 仍在 COM 事件调用栈内：Hide 可以同步调用，但 Unadvise/Release 必须等返回后
             try { Invoke("Hide"); } catch { }
 
             Action<string> callback = _onResult;
             _onResult = null;
             _onCancelled = null;
-            if (callback != null)
+            PostToUiDeferred(() =>
             {
-                try { callback(mathML); } catch { }
-            }
-            // 延迟释放：此刻仍在 COM 事件调用栈里，立即 Unadvise/Release 会重入
-            Dispatcher.CurrentDispatcher.BeginInvoke(new Action(ReleaseResources));
+                try { if (callback != null) callback(mathML); } catch { }
+                ReleaseResources();
+            });
         }
 
         /// <summary>Close / Clear 事件或超时：按取消处理。</summary>
@@ -234,11 +239,11 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             Action callback = _onCancelled;
             _onResult = null;
             _onCancelled = null;
-            if (callback != null)
+            PostToUiDeferred(() =>
             {
-                try { callback(); } catch { }
-            }
-            Dispatcher.CurrentDispatcher.BeginInvoke(new Action(ReleaseResources));
+                try { if (callback != null) callback(); } catch { }
+                ReleaseResources();
+            });
         }
 
         private void StopTimer()
@@ -248,6 +253,42 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 if (_timeout != null) { _timeout.Stop(); _timeout = null; }
             }
             catch { }
+        }
+
+        /// <summary>
+        /// 把收尾动作投递回创建控件的 UI 线程执行。COM 事件可能来自控件自己的
+        /// STA 线程，直接在里面改 WPF 控件会抛跨线程异常；而在事件栈里同步
+        /// Unadvise/Release 又会导致重入崩溃，因此统一延迟到消息循环里做。
+        /// </summary>
+        private void PostToUiDeferred(Action action)
+        {
+            if (action == null) return;
+            try
+            {
+                Dispatcher dispatcher = _uiDispatcher ?? Dispatcher.CurrentDispatcher;
+                dispatcher.BeginInvoke(action, DispatcherPriority.Normal);
+            }
+            catch
+            {
+                try { action(); } catch { }
+            }
+        }
+
+        /// <summary>不在 COM 事件栈里时立即释放；在事件栈里则延迟到 UI 消息循环。</summary>
+        private void ScheduleRelease()
+        {
+            if (_inEventCallback)
+            {
+                PostToUiDeferred(ReleaseResources);
+            }
+            else if (_uiDispatcher != null && !_uiDispatcher.CheckAccess())
+            {
+                PostToUiDeferred(ReleaseResources);
+            }
+            else
+            {
+                ReleaseResources();
+            }
         }
 
         private void ReleaseResources()
@@ -279,8 +320,8 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         {
             if (_finished)
             {
-                // 同样延迟释放：可能正处在 COM 事件回调栈里
-                Dispatcher.CurrentDispatcher.BeginInvoke(new Action(ReleaseResources));
+                // 可能正处在 COM 事件回调栈里：统一走延迟释放
+                ScheduleRelease();
                 return;
             }
             _finished = true;
@@ -293,7 +334,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             {
                 try { callback(); } catch { }
             }
-            Dispatcher.CurrentDispatcher.BeginInvoke(new Action(ReleaseResources));
+            ScheduleRelease();
         }
 
         public void Dispose()
@@ -364,21 +405,33 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 {
                     if (pDispParams.cArgs > 0 && pDispParams.rgvarg != IntPtr.Zero)
                     {
-                        object[] args = Marshal.GetObjectsForNativeVariants(
-                            pDispParams.rgvarg, pDispParams.cArgs);
-                        // Insert 只有 1 个 BSTR；COM 参数逆序排列，args[0] 即 MathML
-                        string mathML = args.Length > 0 ? args[0] as string : null;
-                        if (!string.IsNullOrWhiteSpace(mathML))
+                        // 手写过程中控件会高频触发 Paint（HDC/坐标/MICUIELEMENT 等 7 个参数）。
+                        // 这里不再用 Marshal.GetObjectsForNativeVariants 为每个参数创建托管对象
+                        // （频繁创建/释放 RCW 有 COM 生命周期风险），只原生读取 Insert 的单个
+                        // BSTR 参数；非字符串参数的事件一律忽略。
+                        // VARIANT 的数据联合体在 x86/x64 上都位于偏移 8（vt 2 + 保留 6）。
+                        int vt = (ushort)Marshal.ReadInt16(pDispParams.rgvarg);
+                        if (vt == 8)   // VT_BSTR
                         {
-                            _owner.OnInsert(mathML);
-                            return 0;
+                            IntPtr pBstr = Marshal.ReadIntPtr(pDispParams.rgvarg, 8);
+                            if (pBstr != IntPtr.Zero)
+                            {
+                                string mathML = Marshal.PtrToStringBSTR(pBstr);
+                                if (!string.IsNullOrWhiteSpace(mathML))
+                                {
+                                    _owner._inEventCallback = true;
+                                    try { _owner.OnInsert(mathML); }
+                                    finally { _owner._inEventCallback = false; }
+                                }
+                            }
                         }
-                        // Paint 事件带 hdc/坐标/MICUIELEMENT/state 等多个非字符串参数，
-                        // 属于自定义绘制（MICUIELEMENT 枚举），本插件不处理，绝不能当作取消。
+                        // Paint 等非字符串事件：忽略，绝不能当作取消
                         return 0;
                     }
                     // Close / Clear：0 参数，按会话结束处理
-                    _owner.OnDismissed();
+                    _owner._inEventCallback = true;
+                    try { _owner.OnDismissed(); }
+                    finally { _owner._inEventCallback = false; }
                 }
                 catch { }
                 return 0;   // S_OK

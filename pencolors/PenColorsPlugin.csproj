@@ -20,7 +20,7 @@
     <!-- 宿主程序集：提供 IPlugin / IPluginHost / PenColorSlotInfo 契约。
          插件复用宿主已加载的程序集（Private=false），因此除自身 DLL 外不打包任何额外依赖。 -->
     <Reference Include="Ink Canvas Ultra">
-      <HintPath>D:\AI\icu\muqiu-pika\Ink-Canvas-Ultra\Ink Canvas\bin\Release\Ink Canvas Ultra.exe</HintPath>
+      <HintPath>..\..\Ink-Canvas-Ultra\Ink Canvas\bin\Release\Ink Canvas Ultra.exe</HintPath>
       <Private>false</Private>
     </Reference>
     <!-- 系统取色对话框 -->
