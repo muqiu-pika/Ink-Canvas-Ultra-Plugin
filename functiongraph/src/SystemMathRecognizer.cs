@@ -4,6 +4,8 @@ using System.Runtime.InteropServices;
 using System.Runtime.InteropServices.ComTypes;
 using System.Windows;
 using System.Windows.Threading;
+using System.Globalization;
+using System.Threading;
 // 这两个类型在 System.Runtime.InteropServices 与 .ComTypes 中同名，显式消歧
 using INVOKEKIND = System.Runtime.InteropServices.ComTypes.INVOKEKIND;
 using DISPPARAMS = System.Runtime.InteropServices.ComTypes.DISPPARAMS;
@@ -61,8 +63,15 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 _onResult = onResult,
                 _onCancelled = onCancelled
             };
+            // 面板 UI 资源按线程 UI 语言加载：临时切到 zh-CN，让按钮/提示为中文，
+            // Show 完成后恢复原线程文化（失败路径在 finally 中统一恢复）
+            var previousUICulture = Thread.CurrentThread.CurrentUICulture;
+            bool cultureChanged = false;
             try
             {
+                Thread.CurrentThread.CurrentUICulture = new CultureInfo("zh-CN");
+                cultureChanged = true;
+
                 if (SystemMathCapability.Status != SystemMathStatus.Available)
                 {
                     failureReason = "未检测到系统数学识别组件（micaut.dll / mraut.dll，"
@@ -126,6 +135,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
 
                 session.Invoke("Show");
 
+                // 面板窗口已按中文资源创建完毕，恢复线程文化
+                Thread.CurrentThread.CurrentUICulture = previousUICulture;
+                cultureChanged = false;
+
                 // 兜底：用户既不点插入也不点取消时，避免 COM 会话与窗口一直悬挂
                 session._timeout = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) };
                 session._timeout.Tick += (s, e) => session.Finish(true);
@@ -139,6 +152,11 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 failureReason = "调用系统面板时异常：" + reason;
                 session.Finish(false);
                 return null;
+            }
+            finally
+            {
+                if (cultureChanged)
+                    Thread.CurrentThread.CurrentUICulture = previousUICulture;
             }
         }
 

@@ -14,17 +14,12 @@ namespace Ink_Canvas.Plugins.FunctionGraph
     /// <summary>
     /// Windows Math Recognizer（Word「墨迹公式」同源引擎）的**只读能力探测**。
     ///
-    /// 设计约束：只作为状态提示，**绝不成为功能依赖**。
+    /// 设计约束：作为手写面板按钮的启用判据与状态提示，**不作为功能依赖**。
     ///  - 该组件是 Windows 的 Feature on Demand（Win10 1809+ / Win11 按需安装），
-    ///    Win7/8/8.1 内置、Win11 可能被标记为 Superseded 或 DISM 安装失败，
-    ///    因此不能假设用户机器一定有；
-    ///  - 调用它的 COM 控件还需要事件连接点（未公开的 IID/DISPID）与 32/64 位互操作包装，
-    ///    任何失败都可能弹窗或卡住主流程，与「保证大部分 Windows 版本能够运行」冲突。
-    ///  - 所以这里只做「文件 + 注册表」级别的只读检查，不实例化 COM、不弹窗、不抛异常。
-    ///
-    /// 真正的识别由 <see cref="HandwritingMathRecognizer"/> +
-    /// <see cref="ExpressionConstrainedDecoder"/> 完成：纯托管、零系统组件、零联网，
-    /// Win7 SP1 ~ Windows 11 / Server 行为一致。
+    ///    可能未安装或安装失败，因此不能假设用户机器一定有；
+    ///  - 探测只做「文件」级别的只读检查（micaut.dll + mraut.dll），不实例化 COM、
+    ///    不弹窗、不抛异常；Math Input Control 的接口细节（IID/DISPID/事件参数）
+    ///    见 <see cref="SystemMathRecognizer"/>（依据 Windows SDK micaut.h 与官方示例）。
     /// </summary>
     internal static class SystemMathCapability
     {
