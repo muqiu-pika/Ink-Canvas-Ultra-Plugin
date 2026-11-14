@@ -144,6 +144,8 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             // 刻度（可关）：轴上短刻度线 + 主刻度整数数值标注，按各轴步长，避开元素边缘
             if (request.ShowTicks && !isPreview)
             {
+            {
+                int tickCount = 0;
                 double fontSize = Math.Max(8, 10 * dpiScale);
                 double tickLength = Math.Max(4, 5 * dpiScale);
                 double margin = 12 * dpiScale;
@@ -172,6 +174,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                     Canvas.SetLeft(label, px - fontSize * 0.4);
                     Canvas.SetTop(label, Math.Min(Math.Max(originY + tickLength + 1 * dpiScale, 0), height - fontSize - 2));
                     canvas.Children.Add(label);
+                    tickCount++;
                 }
 
                 for (int gy = (int)Math.Ceiling(-request.YMax); gy <= (int)Math.Floor(request.YMax); gy++)
@@ -198,8 +201,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                     Canvas.SetLeft(label, Math.Max(originX - tickLength - fontSize * 1.6, 1));
                     Canvas.SetTop(label, py - fontSize / 2);
                     canvas.Children.Add(label);
+                    tickCount++;
                 }
             }
+        }
 
             // 曲线：像素步长采样
             if (request.ExpressionText != null)
