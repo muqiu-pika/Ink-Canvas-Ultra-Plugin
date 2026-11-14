@@ -1,6 +1,6 @@
 {
   "apiVersion": "1.2",
-  "lastUpdated": "2026-11-12T08:17:00Z",
+  "lastUpdated": "2026-11-14T03:15:00Z",
   "market": {
     "name": "Ink Canvas Ultra Plugin Market",
     "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin",
@@ -222,10 +222,10 @@
     {
       "id": "ink-canvas.function-graph",
       "name": "函数绘图",
-      "version": "1.0.0",
+      "version": "1.3.0",
       "gitRef": "main",
       "author": "muqiu",
-      "description": "在「图形」面板新增「函数」项：手写或输入 f(x)（如 y=x^2、sin(x)），设置 x/y 轴最大范围与是否显示刻度，然后在画布上单击定原点、拖动右上角确定范围，即可绘制函数图像。",
+      "description": "在「图形」面板新增「函数」项：可调用 Windows 原生「墨迹公式」（Math Input Control，与 Word 同源，支持分式 / 上下标 / 根号），也可直接在内置手写区书写。系统引擎缺失或位数不匹配时自动降级到纯托管内置识别，Windows 7 SP1 至 Windows 11 均可运行，不依赖 Office、不联网；语法约束候选解码自动纠正整式级误识别；手写区跟随特殊屏幕模式与触摸大小；确定后一次拖动完成放置。",
       "tags": [
         "function",
         "math",
@@ -234,17 +234,17 @@
       ],
       "category": "teaching",
       "minHostVersion": "26.11.1",
-      "size": 35538,
+      "size": 64641,
       "icon": "📈",
       "downloadUrl": "https://cdn.jsdelivr.net/gh/muqiu-pika/Ink-Canvas-Ultra-Plugin@main/functiongraph.icplugin",
       "fallbackUrl": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/raw/main/functiongraph.icplugin",
       "checksum": {
         "algorithm": "SHA256",
-        "value": "BB723D7BA2B0E0BB999A4C6F10AEB36419F8C8D4962AC9825FBEBFBDF26E699F"
+        "value": "670168112A666C01BFD6CF6FC5617E9CFCCF2A3D69722207F3186643B3F6960A"
       },
       "changelogUrl": "https://plugin.muqiu.eu.org/v1/plugins/functiongraph/changelog.md",
       "homepage": "https://github.com/muqiu-pika/Ink-Canvas-Ultra-Plugin/tree/main/functiongraph",
-      "releasedAt": "2026-11-12T08:17:00Z"
+      "releasedAt": "2026-11-14T03:15:00Z"
     }
   ]
 }
