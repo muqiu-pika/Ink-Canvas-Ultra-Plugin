@@ -143,36 +143,25 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 var brush = new SolidColorBrush(_themeForeground);
                 brush.Freeze();
 
-                // 用 Canvas 承载标记（Grid 不响应 Canvas.SetLeft/SetTop，
-                // 否则圆圈会落在画布左上角而不是原点）；圆心 = 标记容器中心 = 原点
+                // 用 Canvas 承载一个小圆点标记原点（Grid 不响应 Canvas.SetLeft/SetTop，
+                // 否则标记会落在画布左上角而不是原点）；圆心 = 标记容器中心 = 原点
                 var container = new System.Windows.Controls.Canvas
                 {
-                    Width = s * 2,
-                    Height = s * 2,
+                    Width = s,
+                    Height = s,
                     IsHitTestVisible = false
                 };
 
-                var hLine = new System.Windows.Shapes.Line
+                var dot = new System.Windows.Shapes.Ellipse
                 {
-                    X1 = 0, Y1 = s, X2 = s * 2, Y2 = s,
-                    Stroke = brush, StrokeThickness = t, IsHitTestVisible = false
+                    Width = s * 0.25, Height = s * 0.25,
+                    Fill = brush,
+                    IsHitTestVisible = false
                 };
-                var vLine = new System.Windows.Shapes.Line
-                {
-                    X1 = s, Y1 = 0, X2 = s, Y2 = s * 2,
-                    Stroke = brush, StrokeThickness = t, IsHitTestVisible = false
-                };
-                var circle = new System.Windows.Shapes.Ellipse
-                {
-                    Width = s * 0.7, Height = s * 0.7,
-                    Stroke = brush, StrokeThickness = t, IsHitTestVisible = false
-                };
-                System.Windows.Controls.Canvas.SetLeft(circle, s - s * 0.35);
-                System.Windows.Controls.Canvas.SetTop(circle, s - s * 0.35);
+                System.Windows.Controls.Canvas.SetLeft(dot, s * 0.375);
+                System.Windows.Controls.Canvas.SetTop(dot, s * 0.375);
 
-                container.Children.Add(hLine);
-                container.Children.Add(vLine);
-                container.Children.Add(circle);
+                container.Children.Add(dot);
                 _centerMarker = container;
                 System.Windows.Controls.Panel.SetZIndex(_centerMarker, 9998);
                 System.Windows.Controls.Canvas.SetLeft(_centerMarker, _origin.X - s);
