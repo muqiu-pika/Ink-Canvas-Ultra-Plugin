@@ -46,6 +46,9 @@
                 <CheckBox Grid.Column="4" x:Name="TicksCheck" Content="显示刻度" IsChecked="True"
                           Margin="14,0,0,0" VerticalAlignment="Center" FontSize="13"
                           Foreground="{DynamicResource PopupWindowForeground}" />
+                <CheckBox Grid.Column="5" x:Name="GridCheck" Content="显示网格线" IsChecked="True"
+                          Margin="10,0,0,0" VerticalAlignment="Center" FontSize="13"
+                          Foreground="{DynamicResource PopupWindowForeground}" />
             </Grid>
 
             <TextBlock Text="# 范围以中心对称，每格 1 单位。"

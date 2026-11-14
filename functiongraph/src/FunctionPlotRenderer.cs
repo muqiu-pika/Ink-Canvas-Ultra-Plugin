@@ -17,13 +17,18 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         public double XMax;
         public double YMax;
         public bool ShowTicks;
+        public bool ShowGrid;
     }
 
     /// <summary>
-    /// 函数图像渲染器：坐标系以元素中心为原点（对应画布上单击的"中心"位置）。
-    /// 两轴共用同一比例（pxPerUnit = min(半宽/xMax, 半高/yMax)），网格为正方形、
-    /// 以 1 个坐标单位为一格——两轴等比，图像不变形；实际可见范围不小于
-    /// [-xMax, xMax] × [-yMax, yMax]，超出元素边界的部分自然裁剪。
+    /// 函数图像渲染器：坐标系以元素中心为原点（对应画布上单击的"中心"位置），
+    /// 两轴独立换算（pxPerUnitX = 半宽/xMax，pxPerUnitY = 半高/yMax）——
+    /// x/y 轴最大范围所填数值精确决定可见坐标域 [-xMax, xMax] × [-yMax, yMax]。
+    ///
+    /// 网格与刻度按各轴像素密度自适应：
+    ///  - 主刻度步长自动取 1/2/5×10ⁿ（相邻刻度不小于约 44 物理像素），两轴各自计算；
+    ///  - 次网格固定 1 个坐标单位一格，但单位像素小于 8px 时自动省略，避免糊成一片；
+    ///  - 「显示网格线」关闭时不画网格（坐标轴保留）；「显示刻度」关闭时不画刻度线与数字。
     /// 曲线按像素步长采样，遇 NaN/∞/越界/渐近线跳变断开，不连成竖线。
     /// 输出元素为 Canvas + Line/Path/TextBlock（冻结画刷、无事件、无 x:Name），
     /// 可被宿主 XamlWriter 快照随白板保存/恢复。
@@ -38,10 +43,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         {
             double halfW = width / 2;
             double halfH = height / 2;
-            // 统一方格缩放：取两轴所需比例的较小者，保证每格 1 单位为正方形（图像不变形）
-            double pxPerUnit = Math.Min(halfW / request.XMax, halfH / request.YMax);
-            double visibleX = halfW / pxPerUnit;   // 实际可见的数据范围（≥ xMax）
-            double visibleY = halfH / pxPerUnit;   // ≥ yMax
+            // 两轴独立换算：填写的 x/y 最大范围精确决定可见坐标域，
+            // 网格与刻度步长按各轴像素密度自适应（1/2/5×10ⁿ），保证标注不挤
+            double pxPerUnitX = halfW / request.XMax;
+            double pxPerUnitY = halfH / request.YMax;
 
             double originX = halfW;   // 元素内坐标：原点在中心
             double originY = halfH;
@@ -53,65 +58,73 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             Color minorGridColor = Blend(themeForeground, 0.18);
             Color tickColor = themeForeground;
 
-            int majorStep = ComputeMajorStep(pxPerUnit, dpiScale);
-            bool showMinorGrid = pxPerUnit >= 8;   // 1 单位小于 8px 时省略次网格，避免糊成一片
+            int majorStepX = ComputeMajorStep(pxPerUnitX, dpiScale);
+            int majorStepY = ComputeMajorStep(pxPerUnitY, dpiScale);
+            bool showMinorGridX = pxPerUnitX >= 8;   // 1 单位小于 8px 时省略该轴次网格
+            bool showMinorGridY = pxPerUnitY >= 8;
 
             double thickness = Math.Max(1, dpiScale);
             double curveThickness = Math.Max(1.5, 2 * dpiScale);
 
-            // 次网格：每 1 个坐标单位一格（单位像素过密时自动省略）
-            if (showMinorGrid)
+            // 网格：每 1 个坐标单位一格（次网格），主网格按各轴自适应步长；「显示网格线」关闭时不画
+            if (request.ShowGrid)
             {
-                for (int gx = (int)Math.Ceiling(-visibleX); gx <= (int)Math.Floor(visibleX); gx++)
+                if (showMinorGridX)
                 {
-                    if (gx == 0 || gx % majorStep == 0) continue;
-                    double px = originX + gx * pxPerUnit;
+                    for (int gx = (int)Math.Ceiling(-request.XMax); gx <= (int)Math.Floor(request.XMax); gx++)
+                    {
+                        if (gx == 0 || gx % majorStepX == 0) continue;
+                        double px = originX + gx * pxPerUnitX;
+                        if (px < 0 || px > width) continue;
+                        canvas.Children.Add(new Line
+                        {
+                            X1 = px, Y1 = 0, X2 = px, Y2 = height,
+                            Stroke = MakeBrush(minorGridColor), StrokeThickness = Math.Max(0.5, 0.6 * dpiScale),
+                            IsHitTestVisible = false
+                        });
+                    }
+                }
+                if (showMinorGridY)
+                {
+                    for (int gy = (int)Math.Ceiling(-request.YMax); gy <= (int)Math.Floor(request.YMax); gy++)
+                    {
+                        if (gy == 0 || gy % majorStepY == 0) continue;
+                        double py = originY - gy * pxPerUnitY;
+                        if (py < 0 || py > height) continue;
+                        canvas.Children.Add(new Line
+                        {
+                            X1 = 0, Y1 = py, X2 = width, Y2 = py,
+                            Stroke = MakeBrush(minorGridColor), StrokeThickness = Math.Max(0.5, 0.6 * dpiScale),
+                            IsHitTestVisible = false
+                        });
+                    }
+                }
+
+                // 主网格：每 majorStep 个坐标单位一格
+                for (int gx = (int)Math.Ceiling(-request.XMax); gx <= (int)Math.Floor(request.XMax); gx++)
+                {
+                    if (gx == 0 || gx % majorStepX != 0) continue;
+                    double px = originX + gx * pxPerUnitX;
                     if (px < 0 || px > width) continue;
                     canvas.Children.Add(new Line
                     {
                         X1 = px, Y1 = 0, X2 = px, Y2 = height,
-                        Stroke = MakeBrush(minorGridColor), StrokeThickness = Math.Max(0.5, 0.6 * dpiScale),
+                        Stroke = MakeBrush(majorGridColor), StrokeThickness = Math.Max(0.8, 0.8 * dpiScale),
                         IsHitTestVisible = false
                     });
                 }
-                for (int gy = (int)Math.Ceiling(-visibleY); gy <= (int)Math.Floor(visibleY); gy++)
+                for (int gy = (int)Math.Ceiling(-request.YMax); gy <= (int)Math.Floor(request.YMax); gy++)
                 {
-                    if (gy == 0 || gy % majorStep == 0) continue;
-                    double py = originY - gy * pxPerUnit;
+                    if (gy == 0 || gy % majorStepY != 0) continue;
+                    double py = originY - gy * pxPerUnitY;
                     if (py < 0 || py > height) continue;
                     canvas.Children.Add(new Line
                     {
                         X1 = 0, Y1 = py, X2 = width, Y2 = py,
-                        Stroke = MakeBrush(minorGridColor), StrokeThickness = Math.Max(0.5, 0.6 * dpiScale),
+                        Stroke = MakeBrush(majorGridColor), StrokeThickness = Math.Max(0.8, 0.8 * dpiScale),
                         IsHitTestVisible = false
                     });
                 }
-            }
-
-            // 主网格：每 majorStep 个坐标单位一格
-            for (int gx = (int)Math.Ceiling(-visibleX); gx <= (int)Math.Floor(visibleX); gx++)
-            {
-                if (gx == 0 || gx % majorStep != 0) continue;
-                double px = originX + gx * pxPerUnit;
-                if (px < 0 || px > width) continue;
-                canvas.Children.Add(new Line
-                {
-                    X1 = px, Y1 = 0, X2 = px, Y2 = height,
-                    Stroke = MakeBrush(majorGridColor), StrokeThickness = Math.Max(0.8, 0.8 * dpiScale),
-                    IsHitTestVisible = false
-                });
-            }
-            for (int gy = (int)Math.Ceiling(-visibleY); gy <= (int)Math.Floor(visibleY); gy++)
-            {
-                if (gy == 0 || gy % majorStep != 0) continue;
-                double py = originY - gy * pxPerUnit;
-                if (py < 0 || py > height) continue;
-                canvas.Children.Add(new Line
-                {
-                    X1 = 0, Y1 = py, X2 = width, Y2 = py,
-                    Stroke = MakeBrush(majorGridColor), StrokeThickness = Math.Max(0.8, 0.8 * dpiScale),
-                    IsHitTestVisible = false
-                });
             }
 
             // 坐标轴
@@ -128,17 +141,17 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 IsHitTestVisible = false
             });
 
-            // 刻度（可关）：轴上短刻度线 + 主刻度整数数值标注，避开元素边缘
+            // 刻度（可关）：轴上短刻度线 + 主刻度整数数值标注，按各轴步长，避开元素边缘
             if (request.ShowTicks && !isPreview)
             {
                 double fontSize = Math.Max(8, 10 * dpiScale);
                 double tickLength = Math.Max(4, 5 * dpiScale);
                 double margin = 12 * dpiScale;
 
-                for (int gx = (int)Math.Ceiling(-visibleX); gx <= (int)Math.Floor(visibleX); gx++)
+                for (int gx = (int)Math.Ceiling(-request.XMax); gx <= (int)Math.Floor(request.XMax); gx++)
                 {
-                    if (gx == 0 || gx % majorStep != 0) continue;
-                    double px = originX + gx * pxPerUnit;
+                    if (gx == 0 || gx % majorStepX != 0) continue;
+                    double px = originX + gx * pxPerUnitX;
                     if (px < margin || px > width - margin) continue;
 
                     // x 轴上的刻度短线
@@ -161,10 +174,10 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                     canvas.Children.Add(label);
                 }
 
-                for (int gy = (int)Math.Ceiling(-visibleY); gy <= (int)Math.Floor(visibleY); gy++)
+                for (int gy = (int)Math.Ceiling(-request.YMax); gy <= (int)Math.Floor(request.YMax); gy++)
                 {
-                    if (gy == 0 || gy % majorStep != 0) continue;
-                    double py = originY - gy * pxPerUnit;
+                    if (gy == 0 || gy % majorStepY != 0) continue;
+                    double py = originY - gy * pxPerUnitY;
                     if (py < margin || py > height - margin) continue;
 
                     // y 轴上的刻度短线
@@ -210,11 +223,11 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                         Point last = default(Point);
                         double lastY = double.NaN;
                         double jumpThreshold = height * 1.5;   // 一个采样步内纵跨超过 1.5 倍高视为渐近线跳变
-                        double clipY = visibleY * 1.02;        // 纵向裁剪边界（数据单位），略放宽避免边界毛刺
+                        double clipY = request.YMax * 1.02;    // 纵向裁剪边界（数据单位），略放宽避免边界毛刺
 
                         for (double px = 0; px <= width; px += 1)
                         {
-                            double dataX = (px - originX) / pxPerUnit;
+                            double dataX = (px - originX) / pxPerUnitX;
                             double dataY = f(dataX);
                             if (double.IsNaN(dataY) || double.IsInfinity(dataY) || Math.Abs(dataY) > clipY)
                             {
@@ -223,7 +236,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                                 continue;
                             }
 
-                            var point = new Point(px, originY - dataY * pxPerUnit);
+                            var point = new Point(px, originY - dataY * pxPerUnitY);
                             if (!drawing)
                             {
                                 ctx.BeginFigure(point, false, false);

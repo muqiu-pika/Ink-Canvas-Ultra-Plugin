@@ -155,7 +155,8 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 ExpressionText = ExpressionParser.Normalize(expression),
                 XMax = xMax,
                 YMax = yMax,
-                ShowTicks = TicksCheck.IsChecked == true
+                ShowTicks = TicksCheck.IsChecked == true,
+                ShowGrid = GridCheck.IsChecked == true
             };
 
             DialogResult = true;
