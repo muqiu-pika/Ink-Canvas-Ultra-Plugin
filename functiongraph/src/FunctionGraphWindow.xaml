@@ -1,8 +1,8 @@
 <Window x:Class="Ink_Canvas.Plugins.FunctionGraph.FunctionGraphWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="函数绘图"
-        Width="580"
+        Title="函数绘图 · 墨迹公式"
+        Width="620"
         SizeToContent="Height"
         WindowStartupLocation="CenterScreen"
         Background="{DynamicResource PopupWindowBackground}"
@@ -12,12 +12,21 @@
         UseLayoutRounding="True">
     <Border BorderBrush="{DynamicResource PopupWindowBorderBrush}" BorderThickness="1" Padding="18,14">
         <StackPanel>
-            <TextBlock Text="手写函数（写完自动识别，也可直接在下面输入），对齐 Word「墨迹公式」体验："
+            <TextBlock Text="手写函数（系统引擎可用时优先使用，也可直接在下方手写区书写）："
                        FontSize="13"
                        Margin="0,0,0,6"
+                       TextWrapping="Wrap"
                        Foreground="{DynamicResource PopupWindowForeground}" />
 
-            <Border BorderBrush="{DynamicResource PopupWindowBorderBrush}" BorderThickness="1"
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                <Button x:Name="BtnSystemInk" Content="使用 Windows 墨迹公式（Word 同款）"
+                        Padding="12,5" FontWeight="SemiBold" Click="BtnSystemInk_Click" />
+                <TextBlock x:Name="SystemInkHint" Margin="10,0,0,0" VerticalAlignment="Center"
+                           FontSize="11" TextWrapping="Wrap" Foreground="#888888" />
+            </StackPanel>
+
+            <Border x:Name="InkAreaBorder"
+                    BorderBrush="{DynamicResource PopupWindowBorderBrush}" BorderThickness="1"
                     Height="150" Background="#18888888" CornerRadius="4">
                 <Grid>
                     <InkCanvas x:Name="InkArea" Background="Transparent" />
@@ -32,13 +41,30 @@
 
             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
                 <Button Content="清空手写" Padding="10,3" Margin="0,0,8,0" Click="BtnClearInk_Click" />
+                <Button Content="撤销一笔" Padding="10,3" Margin="0,0,8,0" Click="BtnUndoStroke_Click" />
                 <Button Content="重新识别" Padding="10,3" Click="BtnRecognize_Click" />
+                <TextBlock x:Name="TouchModeText" Margin="14,0,0,0" VerticalAlignment="Center"
+                           FontSize="11" TextWrapping="Wrap" Foreground="#888888" />
             </StackPanel>
+
+            <TextBlock x:Name="EngineStatusText" Margin="0,6,0,0" FontSize="11"
+                       TextWrapping="Wrap" Foreground="#888888" />
+
+            <TextBlock Text="识别结果（点击任一符号可更换候选）："
+                       FontSize="12" Margin="0,12,0,4"
+                       Foreground="{DynamicResource PopupWindowForeground}" />
+            <ItemsControl x:Name="TokenBar" MinHeight="40">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
 
             <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
                 <TextBlock Text="f(x) =  " VerticalAlignment="Center" FontSize="14"
                            Foreground="{DynamicResource PopupWindowForeground}" />
-                <TextBox x:Name="ExpressionBox" Width="420" Height="28" VerticalContentAlignment="Center"
+                <TextBox x:Name="ExpressionBox" Width="440" Height="28" VerticalContentAlignment="Center"
                          FontSize="14" TextChanged="ExpressionBox_TextChanged" />
             </StackPanel>
 
@@ -66,7 +92,7 @@
             </Grid>
 
             <TextBlock Text="# 范围决定渲染坐标域 [-xMax, xMax] × [-yMax, yMax]，元素右上角即 (xMax, yMax)。"
-                       FontSize="11" Margin="0,6,0,0"
+                       FontSize="11" Margin="0,6,0,0" TextWrapping="Wrap"
                        Foreground="{DynamicResource PopupWindowForeground}" />
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">

@@ -5,8 +5,8 @@
     <UseWPF>true</UseWPF>
     <AssemblyName>FunctionGraphPlugin</AssemblyName>
     <RootNamespace>Ink_Canvas.Plugins.FunctionGraph</RootNamespace>
-    <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <FileVersion>1.0.0.0</FileVersion>
+    <AssemblyVersion>1.3.0.0</AssemblyVersion>
+    <FileVersion>1.3.0.0</FileVersion>
     <Platforms>x64;AnyCPU</Platforms>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>embedded</DebugType>

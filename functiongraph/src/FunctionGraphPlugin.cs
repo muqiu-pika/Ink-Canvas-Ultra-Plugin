@@ -18,6 +18,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
 
         private IPluginHost _host;
         private CanvasPlacementController _placement;
+        private DateTime _lastToolActivationUtc = DateTime.MinValue;
 
         public void Initialize(IPluginHost host)
         {
@@ -26,7 +27,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             {
                 Id = "ink-canvas.function-graph",
                 Name = "函数绘图",
-                Version = "1.0.0"
+                Version = "1.3.0"
             };
 
             try
@@ -92,13 +93,31 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             };
 
             border.MouseUp += (s, e) => OpenGraphWindow();
+            border.TouchUp += (s, e) =>
+            {
+                e.Handled = true;
+                OpenGraphWindow();
+            };
             return border;
         }
 
         private void OpenGraphWindow()
         {
+            // 一次触摸会同时产生 TouchUp 与提升出的 MouseUp；这里做短时抑制，
+            // 否则同一个手势会把手写窗口打开两次（第一次关闭后立刻又弹一个）。
+            DateTime now = DateTime.UtcNow;
+            if (now - _lastToolActivationUtc < TimeSpan.FromMilliseconds(600)) return;
+            _lastToolActivationUtc = now;
+
             try
             {
+                // 上一次放置还没结束时再点工具，先安全收尾，避免两套输入钩子并存
+                if (_placement != null)
+                {
+                    _placement.Cancel();
+                    _placement = null;
+                }
+
                 var inkCanvas = _host.GetInkCanvas();
                 if (inkCanvas == null)
                 {
@@ -106,7 +125,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                     return;
                 }
 
-                var window = new FunctionGraphWindow();
+                var window = new FunctionGraphWindow(_host);
                 var owner = _host.MainWindow;
                 if (owner != null && owner.IsLoaded)
                 {
