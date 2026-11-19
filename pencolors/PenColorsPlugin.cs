@@ -21,18 +21,21 @@ namespace Ink_Canvas.Plugins.PenColors
         /// <summary>槽位索引 -> 自定义颜色（仅记录被改过的槽位）</summary>
         private readonly Dictionary<int, Color> _overrides = new Dictionary<int, Color>();
 
-        /// <summary>默认画笔颜色槽位（-1 = 跟随内置默认）</summary>
-        private int _defaultIndex = -1;
+        /// <summary>三种默认画笔颜色槽位（-1 = 跟随内置默认）：浮动栏/批注、白板亮底、白板暗底</summary>
+        private int _desktopIndex = -1;
+        private int _boardLightIndex = -1;
+        private int _boardDarkIndex = -1;
 
         /// <summary>设置面板中每行槽位的可视元素（用于改色后即时刷新）</summary>
         private readonly List<SlotRowUi> _slotRows = new List<SlotRowUi>();
 
-        private ComboBox _defaultCombo;
+        /// <summary>三种默认笔色行的可视元素（色块预览 / 色值 / 恢复默认）</summary>
+        private readonly List<DefaultRowUi> _defaultRows = new List<DefaultRowUi>();
+
         private TextBlock _currentColorText;
         private Border _canvasSwatch;
         private TextBlock _canvasValueText;
         private Button _canvasResetButton;
-        private bool _suppressUiEvents;
 
         private sealed class SlotRowUi
         {
@@ -43,25 +46,39 @@ namespace Ink_Canvas.Plugins.PenColors
             public TextBlock InitialTag;
         }
 
+        private sealed class DefaultRowUi
+        {
+            public Func<int> GetValue;
+            public int BuiltinSlot;
+            public string BuiltinName;
+            public Border Swatch;
+            public TextBlock ValueText;
+            public Button ResetButton;
+        }
+
         private sealed class ConfigModel
         {
             public Dictionary<string, string> Overrides { get; set; }
+            /// <summary>旧版单值默认色（新版写入浮动栏默认色作兼容别名，读取时用于迁移）</summary>
             public int DefaultIndex { get; set; }
+            public int? DesktopDefaultIndex { get; set; }
+            public int? BoardLightDefaultIndex { get; set; }
+            public int? BoardDarkDefaultIndex { get; set; }
         }
 
         public PluginManifest Manifest { get; } = new PluginManifest
         {
             Id = "ink-canvas.pen-colors",
             Name = "自定义颜色",
-            Version = "1.2.1",
+            Version = "1.3.2",
             Author = "muqiu",
-            Description = "自定义「墨迹选项」里的画笔与荧光笔颜色、启动时的默认画笔颜色，并可设置画布底色。" +
+            Description = "自定义「墨迹选项」里的画笔与荧光笔颜色，可分别设置浮动栏/批注、白板亮底、白板暗底三种默认笔色，并可设置画布底色。" +
                           "取色使用软件统一风格的颜色选择窗口（支持鼠标与触摸、HEX/RGB/预设色板）。" +
                           "不安装本插件时软件内置的 9 个普通色与 6 个荧光笔色照常可用，" +
                           "画布底色的预设与自定义也不依赖本插件；插件被禁用或卸载后画笔颜色恢复为内置默认。",
             EntryAssembly = "PenColorsPlugin.dll",
             EntryClass = "Ink_Canvas.Plugins.PenColors.PenColorsPlugin",
-            MinHostVersion = "26.11.1"
+            MinHostVersion = "26.11.2"
         };
 
         private string ConfigPath
@@ -201,9 +218,13 @@ namespace Ink_Canvas.Plugins.PenColors
             }
         }
 
+        /// <summary>把三种默认色写入宿主（宿主版本过旧时属性不存在，异常静默降级）</summary>
         private void ApplyDefaultIndex()
         {
-            try { if (_host != null) _host.DefaultPenColorIndex = _defaultIndex; } catch { }
+            if (_host == null) return;
+            try { _host.DefaultDesktopPenColorIndex = _desktopIndex; } catch { }
+            try { _host.DefaultBoardLightPenColorIndex = _boardLightIndex; } catch { }
+            try { _host.DefaultBoardDarkPenColorIndex = _boardDarkIndex; } catch { }
         }
 
         /// <summary>当前某槽位生效颜色：本地覆盖优先，否则取主程序返回的内置色</summary>
@@ -233,7 +254,7 @@ namespace Ink_Canvas.Plugins.PenColors
         private UIElement BuildSettingsPanelBody()
         {
             _slotRows.Clear();
-            _defaultCombo = null;
+            _defaultRows.Clear();
             _currentColorText = null;
             _canvasSwatch = null;
             _canvasValueText = null;
@@ -242,7 +263,8 @@ namespace Ink_Canvas.Plugins.PenColors
             var root = new StackPanel { MinWidth = 360, MaxWidth = 780 };
 
             root.Children.Add(MakeNote(
-                "在「墨迹选项」中鼠标右键点击、或触摸屏长按某个颜色色块，即可修改该颜色的显示与落笔颜色。" +
+                "在「墨迹选项」中鼠标右键点击、或触摸屏长按某个颜色色块，即可修改该颜色的显示与落笔颜色；" +
+                "每行右侧的「选择颜色…」按钮也能直接打开取色器。" +
                 "自定义颜色对亮色/暗色主题同时生效；「恢复」或「全部恢复默认」会回到软件内置配色。" +
                 "安装本插件后，「墨迹选项」的深/浅色切换按钮会变为「设置颜色」入口，点击可直接打开本面板。" +
                 "禁用或卸载本插件后，颜色自动恢复为内置默认。"));
@@ -263,27 +285,24 @@ namespace Ink_Canvas.Plugins.PenColors
             };
             defaultRow.Children.Add(new TextBlock
             {
-                Text = "启动时默认颜色：",
+                Text = "默认画笔颜色：",
                 FontSize = 13,
                 VerticalAlignment = VerticalAlignment.Center,
                 Margin = new Thickness(0, 0, 8, 0)
             });
-
-            _defaultCombo = new ComboBox { MinWidth = 220, FontSize = 13, VerticalAlignment = VerticalAlignment.Center };
-            _defaultCombo.Items.Add("跟随内置默认（批注红 / 白板黑或白）");
-            foreach (var slot in SafeGetSlots()) _defaultCombo.Items.Add(slot.Name);
-            _defaultCombo.SelectedIndex = ComboIndexFromDefaultIndex(_defaultIndex);
-            _defaultCombo.SelectionChanged += (s, e) =>
-            {
-                if (_suppressUiEvents) return;
-                int newIndex = DefaultIndexFromComboIndex(_defaultCombo.SelectedIndex);
-                _defaultIndex = newIndex;
-                SaveConfig();
-                ApplyDefaultIndex();
-                RefreshPanelVisuals();
-            };
-            defaultRow.Children.Add(_defaultCombo);
             root.Children.Add(defaultRow);
+
+            // 三种默认色：浮动栏/批注、白板亮底、白板暗底（-1 = 跟随各自内置默认）
+            // 最后一个参数是"跟随内置默认"时对应的内置色槽位（红=1 / 黑=0 / 白=5）
+            root.Children.Add(BuildDefaultColorRow(
+                "浮动栏/批注", "红", 1,
+                () => _desktopIndex, v => _desktopIndex = v));
+            root.Children.Add(BuildDefaultColorRow(
+                "白板亮底", "黑", 0,
+                () => _boardLightIndex, v => _boardLightIndex = v));
+            root.Children.Add(BuildDefaultColorRow(
+                "白板暗底", "白", 5,
+                () => _boardDarkIndex, v => _boardDarkIndex = v));
 
             root.Children.Add(new Separator { Margin = new Thickness(0, 12, 0, 6) });
             root.Children.Add(MakeSectionTitle("画布底色"));
@@ -329,6 +348,171 @@ namespace Ink_Canvas.Plugins.PenColors
             try { Application.Current.Dispatcher.BeginInvoke((Action)RefreshPanelVisuals); } catch { }
 
             return root;
+        }
+
+        /// <summary>构建一行"默认色"（色块预览 + 色值 + 选择颜色 + 恢复内置默认）</summary>
+        private UIElement BuildDefaultColorRow(string label, string builtinName, int builtinSlot,
+            Func<int> getValue, Action<int> setValue)
+        {
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Margin = new Thickness(0, 5, 0, 0),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            int initialSlot = getValue() >= 0 ? getValue() : builtinSlot;
+            var swatch = new Border
+            {
+                Width = 22,
+                Height = 22,
+                CornerRadius = new CornerRadius(4),
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(Color.FromArgb(0x66, 0x80, 0x80, 0x80)),
+                Background = new SolidColorBrush(ResolveSlotColor(initialSlot)),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+
+            var labelText = new TextBlock
+            {
+                Text = label + "：",
+                Width = 92,
+                FontSize = 13,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(10, 0, 4, 0)
+            };
+
+            var valueText = new TextBlock
+            {
+                Text = DefaultColorText(getValue(), builtinName),
+                Width = 76,
+                FontSize = 12,
+                Opacity = 0.75,
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+
+            var pickButton = new Button
+            {
+                Content = "选择颜色…",
+                Padding = new Thickness(10, 3, 10, 3),
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                ToolTip = "为「" + label + "」挑选任意颜色（会写入对应色块并设为该项默认笔色）"
+            };
+            pickButton.Click += (s, e) => OnPickDefaultColor(label, getValue, setValue, builtinSlot);
+
+            var resetButton = new Button
+            {
+                Content = "恢复默认",
+                Padding = new Thickness(10, 3, 10, 3),
+                Margin = new Thickness(6, 0, 0, 0),
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center,
+                IsEnabled = getValue() >= 0
+            };
+            resetButton.Click += (s, e) => OnResetDefaultColor(getValue, setValue);
+
+            row.Children.Add(swatch);
+            row.Children.Add(labelText);
+            row.Children.Add(valueText);
+            row.Children.Add(pickButton);
+            row.Children.Add(resetButton);
+
+            _defaultRows.Add(new DefaultRowUi
+            {
+                GetValue = getValue,
+                BuiltinSlot = builtinSlot,
+                BuiltinName = builtinName,
+                Swatch = swatch,
+                ValueText = valueText,
+                ResetButton = resetButton
+            });
+            return row;
+        }
+
+        /// <summary>默认色行的色值文案：跟随内置时显示内置色名，否则显示实际色值</summary>
+        private string DefaultColorText(int index, string builtinName)
+        {
+            return index < 0 ? "内置（" + builtinName + "）" : ColorToHex(ResolveSlotColor(index));
+        }
+
+        /// <summary>恢复某项默认笔色为内置默认（并撤销取色时写入的色块覆盖色）</summary>
+        private void OnResetDefaultColor(Func<int> getValue, Action<int> setValue)
+        {
+            try
+            {
+                int target = getValue();
+                if (target >= 0 && _overrides.Remove(target))
+                {
+                    try { _host?.ResetPenColorSlot(target); } catch { }
+                }
+                setValue(-1);
+                SaveConfig();
+                ApplyDefaultIndex();
+                RefreshPanelVisuals();
+            }
+            catch (Exception ex)
+            {
+                try { _host?.Log("自定义颜色: 恢复默认笔色失败 " + ex, PluginLogLevel.Warning); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// 为某一项默认笔色直接取色。宿主只支持"默认色 = 某个色块"，
+        /// 因此取色后写入该色块的覆盖色，并把这一项默认色指向该色块。
+        /// </summary>
+        private void OnPickDefaultColor(string label, Func<int> getValue, Action<int> setValue, int builtinSlot)
+        {
+            try
+            {
+                int target = getValue();
+                if (target < 0) target = builtinSlot;
+
+                Color current = ResolveSlotColor(target);
+                Color? picked = null;
+                bool hostPickerUsable = true;
+                try
+                {
+                    if (_host != null)
+                    {
+                        picked = _host.PickColor(
+                            current,
+                            "默认笔迹颜色 · " + label,
+                            "选择「" + label + "」的默认笔迹颜色。该颜色会写入「" + GetSlotName(target) +
+                            "」色块，并把这一项的默认笔色设为它。");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    hostPickerUsable = false;
+                    try { _host?.Log("自定义颜色: 默认笔色取色器不可用，回退系统取色器 | " + ex.Message, PluginLogLevel.Info); } catch { }
+                }
+
+                if (!hostPickerUsable) picked = PickWithSystemDialog(current);
+                if (!picked.HasValue) return;
+
+                Color chosen = picked.Value;
+                _overrides[target] = chosen;
+                SaveConfig();
+
+                bool ok = false;
+                try { ok = _host != null && _host.SetPenColorSlot(target, chosen); } catch { }
+                if (!ok)
+                {
+                    try { _host?.ShowNotification("主程序版本过低，无法应用默认笔色（需要 26.11.2 及以上）"); } catch { }
+                }
+
+                setValue(target);
+                SaveConfig();
+                ApplyDefaultIndex();
+                RefreshPanelVisuals();
+            }
+            catch (Exception ex)
+            {
+                try { _host?.Log("自定义颜色: 设置默认笔色失败 " + ex, PluginLogLevel.Warning); } catch { }
+                try { _host?.ShowNotification("设置默认笔色失败：" + ex.Message); } catch { }
+            }
         }
 
         private UIElement BuildCanvasBackgroundRow()
@@ -519,6 +703,15 @@ namespace Ink_Canvas.Plugins.PenColors
                 Margin = new Thickness(0, 0, 8, 0)
             };
 
+            var pickButton = new Button
+            {
+                Content = "选择颜色…",
+                Padding = new Thickness(10, 3, 10, 3),
+                FontSize = 12,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            pickButton.Click += (s, e) => OnPickColor(slot.Index);
+
             var resetButton = new Button
             {
                 Content = "恢复",
@@ -534,6 +727,7 @@ namespace Ink_Canvas.Plugins.PenColors
             row.Children.Add(label);
             row.Children.Add(initialTag);
             row.Children.Add(valueText);
+            row.Children.Add(pickButton);
             row.Children.Add(resetButton);
 
             _slotRows.Add(new SlotRowUi { Index = slot.Index, Swatch = swatch, ResetButton = resetButton, ValueText = valueText, InitialTag = initialTag });
@@ -703,11 +897,25 @@ namespace Ink_Canvas.Plugins.PenColors
                     _canvasResetButton.IsEnabled = IsHostCanvasCustomized();
                 }
 
-                if (_defaultCombo != null)
+                foreach (var row in _defaultRows)
                 {
-                    _suppressUiEvents = true;
-                    try { _defaultCombo.SelectedIndex = ComboIndexFromDefaultIndex(_defaultIndex); }
-                    finally { _suppressUiEvents = false; }
+                    int index = row.GetValue();
+                    bool following = index < 0;
+                    int colorSlot = following ? row.BuiltinSlot : index;
+                    if (row.Swatch != null)
+                    {
+                        var brush = new SolidColorBrush(ResolveSlotColor(colorSlot));
+                        if (brush.CanFreeze) brush.Freeze();
+                        row.Swatch.Background = brush;
+                    }
+                    if (row.ValueText != null)
+                    {
+                        row.ValueText.Text = DefaultColorText(index, row.BuiltinName);
+                    }
+                    if (row.ResetButton != null)
+                    {
+                        row.ResetButton.IsEnabled = !following;
+                    }
                 }
 
                 if (_currentColorText != null)
@@ -764,25 +972,6 @@ namespace Ink_Canvas.Plugins.PenColors
             }
         }
 
-        private int ComboIndexFromDefaultIndex(int defaultIndex)
-        {
-            if (defaultIndex < 0) return 0;
-            var slots = SafeGetSlots();
-            for (int i = 0; i < slots.Count; i++)
-            {
-                if (slots[i].Index == defaultIndex) return i + 1;
-            }
-            return 0;
-        }
-
-        private int DefaultIndexFromComboIndex(int comboIndex)
-        {
-            if (comboIndex <= 0) return -1;
-            var slots = SafeGetSlots();
-            int i = comboIndex - 1;
-            return (i >= 0 && i < slots.Count) ? slots[i].Index : -1;
-        }
-
         private static TextBlock MakeNote(string text)
         {
             return new TextBlock
@@ -830,7 +1019,9 @@ namespace Ink_Canvas.Plugins.PenColors
                         _overrides[index] = color;
                     }
                 }
-                _defaultIndex = model.DefaultIndex;
+                _desktopIndex = model.DesktopDefaultIndex ?? model.DefaultIndex;
+                _boardLightIndex = model.BoardLightDefaultIndex ?? model.DefaultIndex;
+                _boardDarkIndex = model.BoardDarkDefaultIndex ?? model.DefaultIndex;
             }
             catch (Exception ex)
             {
@@ -847,7 +1038,11 @@ namespace Ink_Canvas.Plugins.PenColors
                     Overrides = _overrides.ToDictionary(
                         pair => pair.Key.ToString(CultureInfo.InvariantCulture),
                         pair => ColorToHex(pair.Value)),
-                    DefaultIndex = _defaultIndex
+                    // DefaultIndex 为旧版单值键：写入浮动栏默认色作兼容别名（旧版插件读取仍可用）
+                    DefaultIndex = _desktopIndex,
+                    DesktopDefaultIndex = _desktopIndex,
+                    BoardLightDefaultIndex = _boardLightIndex,
+                    BoardDarkDefaultIndex = _boardDarkIndex
                 };
 
                 var serializer = new JavaScriptSerializer();

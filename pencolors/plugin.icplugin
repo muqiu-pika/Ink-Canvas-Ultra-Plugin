@@ -1,10 +1,10 @@
 ﻿{
   "id": "ink-canvas.pen-colors",
   "name": "自定义颜色",
-  "version": "1.2.1",
+  "version": "1.3.2",
   "author": "muqiu",
-  "description": "自定义「墨迹选项」里的画笔与荧光笔颜色、启动时的默认画笔颜色，并可设置画布底色。取色使用软件统一风格的颜色选择窗口（Mica 毛玻璃、圆角卡片，支持鼠标与触摸、HEX/RGB 输入、预设色板）。不安装本插件时软件内置的 9 个普通色与 6 个荧光笔色照常可用，画布底色的预设与自定义也不依赖本插件；插件被禁用或卸载后画笔颜色恢复为内置默认。",
+  "description": "自定义「墨迹选项」里的画笔与荧光笔颜色，可分别设置浮动栏/批注、白板亮底、白板暗底三种默认笔色，并可设置画布底色。取色使用软件统一风格的颜色选择窗口（Mica 毛玻璃、圆角卡片，支持鼠标与触摸、HEX/RGB 输入、预设色板）。不安装本插件时软件内置的 9 个普通色与 6 个荧光笔色照常可用，画布底色的预设与自定义也不依赖本插件；插件被禁用或卸载后画笔颜色恢复为内置默认。",
   "entryAssembly": "PenColorsPlugin.dll",
   "entryClass": "Ink_Canvas.Plugins.PenColors.PenColorsPlugin",
-  "minHostVersion": "26.11.1"
+  "minHostVersion": "26.11.2"
 }
