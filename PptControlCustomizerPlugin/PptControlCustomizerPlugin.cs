@@ -48,6 +48,8 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
         // 首次解析时捕获的原始值（禁用/卸载时还原）
         private bool _capturedOriginals;
         private readonly Thickness[] _origMargins = new Thickness[PanelCount];
+        private readonly HorizontalAlignment[] _origHAlign = new HorizontalAlignment[PanelCount];
+        private readonly VerticalAlignment[] _origVAlign = new VerticalAlignment[PanelCount];
         private readonly Transform[] _origLayout = new Transform[PanelCount];
         private readonly double[] _origBorderOpacity = { double.NaN, double.NaN, double.NaN, double.NaN };
         private double _origBarOpacity = double.NaN;
@@ -58,7 +60,8 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
         // 每面板保存的绝对位置（拖拽编辑保存；null = 未编辑过，定位由宿主管理）与最近已知尺寸
         private readonly double?[] _savedX = new double?[PanelCount];
         private readonly double?[] _savedY = new double?[PanelCount];
-        private readonly double[] _lastSize = new double[PanelCount];
+        private readonly double[] _lastWidth = new double[PanelCount];
+        private readonly double[] _lastHeight = new double[PanelCount];
 
         // 属性监听
         private bool _hooked;
@@ -85,9 +88,9 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
         {
             Id = PluginId,
             Name = "PPT 控件自定义",
-            Version = "1.1.0",
+            Version = "1.1.2",
             Author = "muqiu",
-            Description = "自定义 PPT 放映时的四个翻页控件（下方左/右、侧面左/右）与浮动工具栏的缩放、透明度和位置。在插件工坊「设置」或主程序设置页「进入编辑模式」中直接拖拽摆放翻页控件；放映中拖动滑条实时生效；越界自动收拢，禁用插件后恢复默认外观。",
+            Description = "自定义 PPT 放映时的四个翻页控件（下方左/右、侧面左/右）与浮动工具栏的缩放、透明度和位置。在插件工坊「设置」或主程序设置页「进入编辑模式」中直接拖拽摆放翻页控件，可紧贴屏幕边缘；支持「回到初始状态」还原位置与外观；放映中拖动滑条实时生效，禁用插件后恢复默认外观。",
             EntryAssembly = PluginDllName,
             EntryClass = "Ink_Canvas.Plugins.PptControlCustomizer.PptControlCustomizerPlugin",
             MinHostVersion = "26.10.6"
@@ -206,6 +209,8 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
                 var box = _navBoxes[i];
                 if (box == null) continue;
                 _origMargins[i] = box.Margin;
+                _origHAlign[i] = box.HorizontalAlignment;
+                _origVAlign[i] = box.VerticalAlignment;
                 _origLayout[i] = box.LayoutTransform;
                 if (_navBorders[i] != null) _origBorderOpacity[i] = _navBorders[i].Opacity;
             }
@@ -375,8 +380,8 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
                 // 未编辑过 → 定位由宿主管理（对齐/Margin 不动），插件只管外观
                 if (_savedX[index].HasValue && _savedY[index].HasValue)
                 {
-                    double size = index < 2 ? box.ActualWidth : box.ActualHeight;
-                    if (size > 0) _lastSize[index] = size;
+                    if (box.ActualWidth > 0) _lastWidth[index] = box.ActualWidth;
+                    if (box.ActualHeight > 0) _lastHeight[index] = box.ActualHeight;
                     double x = ClampToRoom(index, _savedX[index].Value, true);
                     double y = ClampToRoom(index, _savedY[index].Value, false);
                     if (box.HorizontalAlignment != HorizontalAlignment.Left) box.HorizontalAlignment = HorizontalAlignment.Left;
@@ -388,21 +393,33 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
             catch (Exception ex) { Log("应用控件 #" + index + " 失败 " + ex.Message, PluginLogLevel.Warning); }
         }
 
-        /// <summary>按面板最近已知尺寸把绝对坐标限制在保留 20px 可见的范围内（Left/Top 定位不允许负值）。</summary>
+        /// <summary>
+        /// 把绝对坐标限制在 [0, 窗口尺寸 − 控件该轴实际尺寸] 内，允许控件紧贴屏幕边缘。
+        /// 横向用宽度、纵向用高度，避免用错轴导致贴边时留下大空隙。
+        /// </summary>
         private double ClampToRoom(int index, double v, bool horizontal)
         {
-            double size = _lastSize[index];
             var mw = _host?.MainWindow;
-            if (size <= 0 || mw == null) return v;
+            if (mw == null) return v;
+            var box = _navBoxes != null && index >= 0 && index < PanelCount ? _navBoxes[index] : null;
             double window = horizontal ? mw.ActualWidth : mw.ActualHeight;
             if (window <= 0) return v;
-            double room = Math.Max(0, window - size - 20);
+            double size = 0;
+            if (box != null) size = horizontal ? box.ActualWidth : box.ActualHeight;
+            if (size <= 0) size = horizontal ? _lastWidth[index] : _lastHeight[index];
+            if (size <= 0) return v;
+            // LayoutTransform 以控件左上角为缩放原点（ScaleTransform.CenterX/CenterY 默认 0），
+            // 所以视觉尺寸 = 布局尺寸 × 缩放比例，贴边判断必须按视觉尺寸计算，否则放大后会越出屏幕。
+            double scale = 1;
+            if (box?.LayoutTransform is ScaleTransform st) scale = horizontal ? st.ScaleX : st.ScaleY;
+            if (scale <= 0) scale = 1;
+            double room = Math.Max(0, window - size * scale);
             return Math.Max(0, Math.Min(room, v));
         }
 
         /// <summary>
         /// 布局后的越界收拢：拿到真实渲染尺寸后重算保存的绝对位置，若超出屏幕则
-        /// 临时收拢 Margin（保存的配置不变），保证控件至少留 20px 在屏幕内。
+        /// 临时收拢 Margin（保存的配置不变），控件可一直贴到屏幕边缘。
         /// </summary>
         private void ScheduleBoundsCheck(int index)
         {
@@ -416,12 +433,13 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
                     var box = _navBoxes != null && index < PanelCount ? _navBoxes[index] : null;
                     var mw = _host?.MainWindow;
                     if (box == null || mw == null || box.Visibility != Visibility.Visible) return;
-                    double size = index < 2 ? box.ActualWidth : box.ActualHeight;
-                    double window = index < 2 ? mw.ActualWidth : mw.ActualHeight;
-                    if (size <= 0 || window <= 0) return;
+                    if (box.ActualWidth <= 0 || box.ActualHeight <= 0) return;
+                    if (mw.ActualWidth <= 0 || mw.ActualHeight <= 0) return;
 
-                    bool sizeChanged = Math.Abs(_lastSize[index] - size) > 0.5;
-                    _lastSize[index] = size;
+                    bool sizeChanged = Math.Abs(_lastWidth[index] - box.ActualWidth) > 0.5
+                        || Math.Abs(_lastHeight[index] - box.ActualHeight) > 0.5;
+                    _lastWidth[index] = box.ActualWidth;
+                    _lastHeight[index] = box.ActualHeight;
                     if (!_savedX[index].HasValue || !_savedY[index].HasValue) return;
 
                     double x = ClampToRoom(index, _savedX[index].Value, true);
@@ -504,6 +522,9 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
         // 滑条进入编辑前的值（取消时还原）
         private readonly double[] _preEditScale = new double[PanelCount];
         private readonly double[] _preEditOpacity = new double[PanelCount];
+        // 编辑工具条上的滑条引用（复位时同步显示）
+        private readonly Slider[] _editScaleSliders = new Slider[PanelCount];
+        private readonly Slider[] _editOpacitySliders = new Slider[PanelCount];
 
         /// <summary>
         /// 进入拖拽编辑模式：强制显示四个翻页控件（统一改为 Left/Top 绝对定位），
@@ -637,10 +658,29 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
         private void NavEditDragDown(object sender, MouseButtonEventArgs e, int index)
         {
             if (!_editMode) return;
-            var box = sender as UIElement;
+            var box = sender as FrameworkElement;
+            var mw = _host?.MainWindow;
             if (box == null) return;
             _dragIndex = index;
-            _dragLastPos = e.GetPosition(_host?.MainWindow);
+
+            // 「回到初始状态」后面板恢复为宿主对齐（Bottom/Right/Center），
+            // 拖动前先按当前视觉位置换算成 Left/Top + 绝对值，避免第一下跳动
+            if (mw != null && (box.HorizontalAlignment != HorizontalAlignment.Left || box.VerticalAlignment != VerticalAlignment.Top))
+            {
+                try
+                {
+                    // LayoutTransform 以左上角为缩放原点，视觉左上角即 Margin 起点，无需额外补偿
+                    var tl = box.TransformToVisual(mw).Transform(new Point(0, 0));
+                    _savedX[index] = Math.Max(0, tl.X);
+                    _savedY[index] = Math.Max(0, tl.Y);
+                    box.HorizontalAlignment = HorizontalAlignment.Left;
+                    box.VerticalAlignment = VerticalAlignment.Top;
+                    box.Margin = new Thickness(_savedX[index].Value, _savedY[index].Value, 0, 0);
+                }
+                catch { }
+            }
+
+            _dragLastPos = e.GetPosition(mw);
             box.CaptureMouse();
             Log("开始拖拽控件 #" + index + " @ " + _dragLastPos.X.ToString("F0") + "," + _dragLastPos.Y.ToString("F0"), PluginLogLevel.Trace);
             e.Handled = true;
@@ -654,11 +694,14 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
             var box = sender as FrameworkElement;
             var mw = _host?.MainWindow;
             if (box == null || mw == null) return;
-            var fe = box as FrameworkElement;
-            if (fe != null && fe.ActualWidth > 0) _lastSize[index] = index < 2 ? fe.ActualWidth : fe.ActualHeight;
+            if (box.ActualWidth > 0) _lastWidth[index] = box.ActualWidth;
+            if (box.ActualHeight > 0) _lastHeight[index] = box.ActualHeight;
             var pos = e.GetPosition(mw);
-            double x = ClampToRoom(index, _savedX[index].GetValueOrDefault() + (pos.X - _dragLastPos.X), true);
-            double y = ClampToRoom(index, _savedY[index].GetValueOrDefault() + (pos.Y - _dragLastPos.Y), false);
+            // 复位后 _saved 为空，此时以当前 Margin 作为拖拽基准（左/上对齐）
+            double baseX = _savedX[index] ?? box.Margin.Left;
+            double baseY = _savedY[index] ?? box.Margin.Top;
+            double x = ClampToRoom(index, baseX + (pos.X - _dragLastPos.X), true);
+            double y = ClampToRoom(index, baseY + (pos.Y - _dragLastPos.Y), false);
             _savedX[index] = x;
             _savedY[index] = y;
             box.Margin = new Thickness(x, y, 0, 0);
@@ -688,9 +731,14 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
                 Background = TryBrush("PopupWindowBackground", Brushes.White)
             };
             var root = new StackPanel { Margin = new Thickness(14) };
+            for (int i = 0; i < PanelCount; i++)
+            {
+                _editScaleSliders[i] = null;
+                _editOpacitySliders[i] = null;
+            }
             root.Children.Add(new TextBlock
             {
-                Text = "直接拖动四个翻页控件到想要的位置；下方滑条实时调整每个控件的缩放与透明度。",
+                Text = "直接拖动四个翻页控件到想要的位置（可贴到屏幕边缘）；下方滑条实时调整每个控件的缩放与透明度。「回到初始状态」可把位置与外观重置为默认。",
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 13,
                 Foreground = TryBrush("PopupWindowForeground", Brushes.Black)
@@ -730,6 +778,7 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
                     Margin = new Thickness(8, 3, 8, 3)
                 };
                 Grid.SetRow(sScale, rowIdx); Grid.SetColumn(sScale, 1);
+                _editScaleSliders[index] = sScale;
                 sScale.ValueChanged += (s, e) =>
                 {
                     _scale[index] = Math.Round(sScale.Value);
@@ -749,6 +798,7 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
                     Margin = new Thickness(8, 3, 8, 3)
                 };
                 Grid.SetRow(sOpacity, rowIdx); Grid.SetColumn(sOpacity, 2);
+                _editOpacitySliders[index] = sOpacity;
                 sOpacity.ValueChanged += (s, e) =>
                 {
                     _opacity[index] = Math.Round(sOpacity.Value);
@@ -762,10 +812,13 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
             root.Children.Add(grid);
 
             var row = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, Margin = new Thickness(0, 12, 0, 0) };
+            var reset = new Button { Content = "回到初始状态", Padding = new Thickness(15, 4, 15, 4), Margin = new Thickness(0, 0, 10, 0) };
             var save = new Button { Content = "保存并退出", Padding = new Thickness(15, 4, 15, 4) };
             var cancel = new Button { Content = "取消", Padding = new Thickness(15, 4, 15, 4), Margin = new Thickness(10, 0, 0, 0) };
+            reset.Click += (s, e) => ResetEditToInitial();
             save.Click += (s, e) => SaveEditMode();
             cancel.Click += (s, e) => CancelEditMode();
+            row.Children.Add(reset);
             row.Children.Add(save);
             row.Children.Add(cancel);
             root.Children.Add(row);
@@ -780,6 +833,36 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
             tb.Closed += (s, e) => { if (_editMode) CancelEditMode(); }; // 点标题栏 X 一律视为取消
             _editToolbar = tb;
             tb.Show();
+        }
+
+        /// <summary>
+        /// 回到初始状态：清除保存的绝对位置、还原宿主默认对齐/Margin，缩放与透明度恢复插件默认值。
+        /// 保存后宿主对齐继续生效，不写死坐标。
+        /// </summary>
+        private void ResetEditToInitial()
+        {
+            if (!_editMode || _navBoxes == null) return;
+            try
+            {
+                for (int i = 0; i < PanelCount; i++)
+                {
+                    _savedX[i] = null;
+                    _savedY[i] = null;
+                    _scale[i] = 100;
+                    _opacity[i] = 40;
+                    if (_editScaleSliders[i] != null) _editScaleSliders[i].Value = 100;
+                    if (_editOpacitySliders[i] != null) _editOpacitySliders[i].Value = 40;
+
+                    var box = _navBoxes[i];
+                    if (box == null) continue;
+                    box.HorizontalAlignment = _origHAlign[i];
+                    box.VerticalAlignment = _origVAlign[i];
+                    box.Margin = _origMargins[i];
+                    ApplyPanel(i);
+                }
+                Log("已回到初始状态", PluginLogLevel.Info);
+            }
+            catch (Exception ex) { Log("回到初始状态失败 " + ex.Message, PluginLogLevel.Warning); }
         }
 
         private void SaveEditMode()
@@ -966,6 +1049,8 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
             };
             reset.Click += (s, e) =>
             {
+                // 位置也回到初始状态：清除保存的绝对坐标，还原宿主默认对齐/Margin
+                ResetSavedPositions();
                 // 复位滑条值 → 触发 ValueChanged → 写配置并应用（与全部默认一致时无变化）
                 foreach (var r in _panelSliders)
                 {
@@ -975,6 +1060,27 @@ namespace Ink_Canvas.Plugins.PptControlCustomizer
             root.Children.Add(reset);
 
             return root;
+        }
+
+        /// <summary>清除保存的绝对位置，把四个控件还原为宿主默认对齐/Margin（不写死坐标）。</summary>
+        private void ResetSavedPositions()
+        {
+            try
+            {
+                for (int i = 0; i < PanelCount; i++)
+                {
+                    _savedX[i] = null;
+                    _savedY[i] = null;
+                    var box = _navBoxes != null ? _navBoxes[i] : null;
+                    if (box == null) continue;
+                    box.HorizontalAlignment = _origHAlign[i];
+                    box.VerticalAlignment = _origVAlign[i];
+                    box.Margin = _origMargins[i];
+                }
+                SaveConfig();
+                Log("已清除控件位置并还原默认对齐", PluginLogLevel.Info);
+            }
+            catch (Exception ex) { Log("恢复默认位置失败 " + ex.Message, PluginLogLevel.Warning); }
         }
 
         private UIElement BuildSliderRow(string label, double min, double max,
