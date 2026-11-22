@@ -8,6 +8,9 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 
@@ -22,6 +25,14 @@ namespace Ink_Canvas.Plugins.DocumentToImage
         private readonly Dictionary<string, Timer> _debounceTimers = new Dictionary<string, Timer>();
         private readonly object _watcherLock = new object();
 
+        // ==== 插件设置（文档打开增强）====
+        private bool _autoLaunchOnFileOpen;   // 打开 Word/Excel/PDF 时自动启动软件（文件关联）
+        private bool _jumpToWhiteboard;       // 转换完成后跳转到白板模式
+        private bool _autoConvert = true;     // 打开文件时自动转换（默认开，即既有行为）
+        private readonly Dictionary<string, string> _rememberedPreviousCommands =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private static readonly string[] AssociatedExtensions = { ".doc", ".docx", ".pdf", ".xls", ".xlsx" };
+
         [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
         private static extern IntPtr LoadLibrary(string lpFileName);
 
@@ -32,7 +43,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
         {
             Id = "ink-canvas.document-to-image",
             Name = "文档转照片",
-            Version = "2.2.0",
+            Version = "2.3.0",
             Author = "muqiu",
             Description = "将 Word / Excel / PDF 文件转换为图片并添加到照片列表，支持本地转换缓存与同名修改检测（无需 Office）",
             EntryAssembly = "DocumentToImagePlugin.dll",
@@ -86,11 +97,37 @@ namespace Ink_Canvas.Plugins.DocumentToImage
 
             _host.RegisterRouteHandler("document-open", OnDocumentOpen);
             _host.RegisterRouteHandler("document-watch", OnDocumentWatch);
+            _host.RegisterRouteHandler("document-autoconvert", OnDocumentAutoConvertQuery);
+
+            LoadPluginSettings();
+            _host.RegisterSettingsPanel(BuildSettingsPanel);
+
+            // 同步文件关联状态：开关开启时重新应用（幂等：已是我们的关联则跳过）；
+            // 开关关闭但注册表残留上次会话的关联（如上次被强杀未走 Shutdown）时清理恢复
+            try
+            {
+                if (_autoLaunchOnFileOpen)
+                {
+                    FileAssociationManager.Apply(GetExePath());
+                }
+                else
+                {
+                    FileAssociationManager.Remove(_rememberedPreviousCommands);
+                }
+            }
+            catch { }
+
             _host.Log("文档转照片插件已加载", PluginLogLevel.Info);
         }
 
         public void Shutdown()
         {
+            // 插件卸载/禁用时恢复系统默认打开方式（若文件关联处于开启状态）
+            if (_autoLaunchOnFileOpen)
+            {
+                try { FileAssociationManager.Remove(_rememberedPreviousCommands); } catch { }
+            }
+
             lock (_watcherLock)
             {
                 foreach (var timer in _debounceTimers.Values)
@@ -113,6 +150,8 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                 AppDomain.CurrentDomain.AssemblyResolve -= _assemblyResolveHandler;
             _host?.UnregisterRouteHandler("document-open");
             _host?.UnregisterRouteHandler("document-watch");
+            _host?.UnregisterRouteHandler("document-autoconvert");
+            _host?.UnregisterSettingsPanel();
             _host?.Log("文档转照片插件已卸载", PluginLogLevel.Info);
         }
 
@@ -209,6 +248,178 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             return true;
         }
 
+        /// <summary>
+        /// 处理 document-autoconvert 查询路由：返回插件设置中的「自动转换」开关状态。
+        /// 主程序在文件关联触发的自动打开路径上据此决定是否自动转换。
+        /// </summary>
+        private bool OnDocumentAutoConvertQuery(object parameter)
+        {
+            return _autoConvert;
+        }
+
+        // ==== 插件设置（持久化到插件目录 settings.ini）====
+
+        private string GetSettingsFilePath()
+        {
+            return string.IsNullOrEmpty(_pluginDirectory)
+                ? null
+                : Path.Combine(_pluginDirectory, "settings.ini");
+        }
+
+        private void LoadPluginSettings()
+        {
+            _autoLaunchOnFileOpen = false;
+            _jumpToWhiteboard = false;
+            _autoConvert = true;
+            _rememberedPreviousCommands.Clear();
+
+            try
+            {
+                var path = GetSettingsFilePath();
+                if (string.IsNullOrEmpty(path) || !File.Exists(path)) return;
+
+                foreach (var raw in File.ReadAllLines(path))
+                {
+                    var line = raw.Trim();
+                    if (line.Length == 0 || line.StartsWith("#")) continue;
+                    int eq = line.IndexOf('=');
+                    if (eq <= 0) continue;
+                    var key = line.Substring(0, eq).Trim();
+                    var value = line.Substring(eq + 1).Trim();
+
+                    switch (key)
+                    {
+                        case "autoLaunchOnFileOpen": _autoLaunchOnFileOpen = value == "1"; break;
+                        case "jumpToWhiteboard": _jumpToWhiteboard = value == "1"; break;
+                        case "autoConvert": _autoConvert = value != "0"; break;
+                        default:
+                            if (key.StartsWith("previousCommand.", StringComparison.OrdinalIgnoreCase))
+                            {
+                                _rememberedPreviousCommands[key.Substring("previousCommand.".Length)] = value;
+                            }
+                            break;
+                    }
+                }
+            }
+            catch { }
+        }
+
+        private void SavePluginSettings()
+        {
+            try
+            {
+                var path = GetSettingsFilePath();
+                if (string.IsNullOrEmpty(path)) return;
+
+                var lines = new List<string>
+                {
+                    "# 文档转照片插件设置（由设置面板自动写入）",
+                    "autoLaunchOnFileOpen=" + (_autoLaunchOnFileOpen ? "1" : "0"),
+                    "jumpToWhiteboard=" + (_jumpToWhiteboard ? "1" : "0"),
+                    "autoConvert=" + (_autoConvert ? "1" : "0")
+                };
+                foreach (var pair in _rememberedPreviousCommands)
+                {
+                    lines.Add("previousCommand." + pair.Key + "=" + pair.Value);
+                }
+                File.WriteAllLines(path, lines);
+            }
+            catch { }
+        }
+
+        private string GetExePath()
+        {
+            try
+            {
+                return Assembly.GetEntryAssembly()?.Location;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // ==== 设置面板 ====
+
+        private UIElement BuildSettingsPanel()
+        {
+            var root = new StackPanel { Margin = new Thickness(12) };
+
+            root.Children.Add(new TextBlock
+            {
+                Text = "文档打开增强（Word / Excel / PDF）",
+                FontWeight = FontWeights.SemiBold,
+                FontSize = 14,
+                Margin = new Thickness(0, 0, 0, 10)
+            });
+
+            root.Children.Add(CreateToggle(
+                "打开文件时自动启动软件（已启动则转发给现有实例）",
+                "将 .doc / .docx / .pdf / .xls / .xlsx 的打开方式临时注册到 Ink Canvas Ultra；关闭开关即恢复系统默认打开方式。",
+                _autoLaunchOnFileOpen,
+                v => { _autoLaunchOnFileOpen = v; },
+                v =>
+                {
+                    if (v) FileAssociationManager.Apply(GetExePath());
+                    else FileAssociationManager.Remove(_rememberedPreviousCommands);
+                }));
+
+            root.Children.Add(CreateToggle(
+                "转换完成后跳转到白板模式",
+                "文档转换完成并把照片放入照片列表后，自动从批注模式切到白板模式。",
+                _jumpToWhiteboard,
+                v => { _jumpToWhiteboard = v; },
+                null));
+
+            root.Children.Add(CreateToggle(
+                "打开文件时自动转换",
+                "关闭后，通过文件关联打开文档时仅启动软件、不自动转换（可在软件内手动打开文档）。",
+                _autoConvert,
+                v => { _autoConvert = v; },
+                null));
+
+            return root;
+        }
+
+        private UIElement CreateToggle(string title, string description, bool initialValue, Action<bool> onValueChanged, Action<bool> onAfterChange)
+        {
+            var row = new StackPanel { Margin = new Thickness(0, 4, 0, 4) };
+
+            var checkBox = new CheckBox
+            {
+                Content = title,
+                FontSize = 13,
+                IsChecked = initialValue
+            };
+            checkBox.Checked += (s, e) =>
+            {
+                onValueChanged(true);
+                SavePluginSettings();
+                onAfterChange?.Invoke(true);
+            };
+            checkBox.Unchecked += (s, e) =>
+            {
+                onValueChanged(false);
+                SavePluginSettings();
+                onAfterChange?.Invoke(false);
+            };
+            row.Children.Add(checkBox);
+
+            if (!string.IsNullOrEmpty(description))
+            {
+                row.Children.Add(new TextBlock
+                {
+                    Text = description,
+                    FontSize = 11,
+                    Foreground = new SolidColorBrush(Color.FromRgb(0x88, 0x88, 0x88)),
+                    TextWrapping = TextWrapping.Wrap,
+                    Margin = new Thickness(24, 0, 0, 4)
+                });
+            }
+
+            return row;
+        }
+
         private void ConvertAndAddAsync(string filePath, int dpi, IProgress<ConversionProgress> progress, ConversionProgressWindow progressWindow)
         {
             bool succeeded = false;
@@ -288,6 +499,12 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                         ShowNotification($"已将文档拆分为 {totalChunks} 张分块，已放入照片列表");
                     }
                 });
+
+                // 设置开关：转换完成后跳转到白板模式（关闭时保持当前模式，即默认状态）
+                if (_jumpToWhiteboard)
+                {
+                    try { _host?.TriggerRoute("board-mode", "whiteboard"); } catch { }
+                }
 
                 succeeded = true;
                 EnsureFileWatcher(filePath);
