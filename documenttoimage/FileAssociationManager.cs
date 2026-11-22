@@ -82,8 +82,10 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                         }
                         string previous;
                         PreviousCommands.TryGetValue(ext, out previous);
-                        if (!string.IsNullOrEmpty(previous))
+                        if (!string.IsNullOrEmpty(previous) && LooksLikeSafeCommand(previous))
                         {
+                            // settings.ini 是用户可编辑文件：恢复前校验备份值形态，
+                            // 防止被塞入任意命令串后经"关闭开关→恢复默认"写入注册表执行
                             key.SetValue(null, previous);
                         }
                         else
@@ -96,6 +98,17 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                 PreviousCommands.Remove(ext);
             }
             NotifyShell();
+        }
+
+        /// <summary>恢复值形态校验：无控制字符、长度合理（超过 2048 视为异常直接丢弃覆盖项）。</summary>
+        private static bool LooksLikeSafeCommand(string value)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length > 2048) return false;
+            foreach (var ch in value)
+            {
+                if (char.IsControl(ch)) return false;
+            }
+            return true;
         }
 
         private static void NotifyShell()

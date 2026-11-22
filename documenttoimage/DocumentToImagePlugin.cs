@@ -103,16 +103,20 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             _host.RegisterSettingsPanel(BuildSettingsPanel);
 
             // 同步文件关联状态：开关开启时重新应用（幂等：已是我们的关联则跳过）；
-            // 开关关闭但注册表残留上次会话的关联（如上次被强杀未走 Shutdown）时清理恢复
+            // 开关关闭但注册表残留上次会话的关联（如上次被强杀未走 Shutdown）时清理恢复。
+            // Apply 会把覆盖前的原值写入 _rememberedPreviousCommands，随后立即持久化——
+            // 否则应用重启后 ini 里没有备份，关闭开关时无法恢复用户原来的打开方式
             try
             {
                 if (_autoLaunchOnFileOpen)
                 {
                     FileAssociationManager.Apply(GetExePath());
+                    SavePluginSettings();
                 }
                 else
                 {
                     FileAssociationManager.Remove(_rememberedPreviousCommands);
+                    _rememberedPreviousCommands.Clear();
                 }
             }
             catch { }
@@ -205,6 +209,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
         private bool OnDocumentOpen(object parameter)
         {
             string filePath = parameter as string;
+            _host?.Log($"OnDocumentOpen 收到路径: {filePath}", PluginLogLevel.Trace);
             if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
             {
                 _host?.ShowNotification("未找到要导入的文档");
@@ -232,6 +237,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             };
             conversionThread.SetApartmentState(ApartmentState.STA);
             conversionThread.Start();
+            _host?.Log("转换线程已启动", PluginLogLevel.Trace);
             return true;
         }
 
@@ -361,7 +367,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                 v =>
                 {
                     if (v) FileAssociationManager.Apply(GetExePath());
-                    else FileAssociationManager.Remove(_rememberedPreviousCommands);
+                    else { FileAssociationManager.Remove(_rememberedPreviousCommands); _rememberedPreviousCommands.Clear(); }
                 }));
 
             root.Children.Add(CreateToggle(
@@ -391,17 +397,19 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                 FontSize = 13,
                 IsChecked = initialValue
             };
+            // 顺序：改内存 → 执行副作用（如文件关联 Apply/Remove，可能产生需持久化的新状态）→ 落盘。
+            // 先落盘再执行副作用会丢失副作用产生的状态（如文件关联覆盖前的原值备份）。
             checkBox.Checked += (s, e) =>
             {
                 onValueChanged(true);
-                SavePluginSettings();
                 onAfterChange?.Invoke(true);
+                SavePluginSettings();
             };
             checkBox.Unchecked += (s, e) =>
             {
                 onValueChanged(false);
-                SavePluginSettings();
                 onAfterChange?.Invoke(false);
+                SavePluginSettings();
             };
             row.Children.Add(checkBox);
 
@@ -441,6 +449,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                 }
 
                 List<string> pageFiles = ConvertDocumentToFiles(filePath, dpi, progress, out tempDir);
+                _host?.Log($"文档转换完成，共 {pageFiles?.Count ?? 0} 块", PluginLogLevel.Trace);
                 if (pageFiles == null || pageFiles.Count == 0)
                 {
                     _host?.MainWindow?.Dispatcher.Invoke(() => progressWindow?.SetError("未生成任何照片"));
@@ -517,6 +526,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             }
             finally
             {
+                _host?.Log("ConvertAndAddAsync 结束", PluginLogLevel.Trace);
                 try { if (tempDir != null && Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
                 // 主动触发 GC 回收转换过程中产生的临时内存
                 try { GC.Collect(); GC.WaitForPendingFinalizers(); } catch { }
