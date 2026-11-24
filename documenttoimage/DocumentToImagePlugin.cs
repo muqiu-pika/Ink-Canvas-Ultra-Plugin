@@ -26,7 +26,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
         private readonly object _watcherLock = new object();
 
         // ==== 插件设置（文档打开增强）====
-        private bool _autoLaunchOnFileOpen;   // 打开 Word/Excel/PDF 时自动启动软件（文件关联）
+        private bool _autoLaunchOnFileOpen = true; // 打开 Word/Excel/PDF 时自动启动软件（文件关联）；安装插件后默认开启
         private bool _jumpToWhiteboard;       // 转换完成后跳转到白板模式
         private bool _autoConvert = true;     // 打开文件时自动转换（默认开，即既有行为）
         private readonly Dictionary<string, string> _rememberedPreviousCommands =
@@ -43,7 +43,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
         {
             Id = "ink-canvas.document-to-image",
             Name = "文档转照片",
-            Version = "2.3.0",
+            Version = "3.3.0",
             Author = "muqiu",
             Description = "将 Word / Excel / PDF 文件转换为图片并添加到照片列表，支持本地转换缓存、同名修改检测与文件打开增强（自动启动软件、跳转白板模式、自动转换开关），无需 Office",
             EntryAssembly = "DocumentToImagePlugin.dll",
@@ -102,22 +102,15 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             LoadPluginSettings();
             _host.RegisterSettingsPanel(BuildSettingsPanel);
 
-            // 同步文件关联状态：开关开启时重新应用（幂等：已是我们的关联则跳过）；
-            // 开关关闭但注册表残留上次会话的关联（如上次被强杀未走 Shutdown）时清理恢复。
-            // Apply 会把覆盖前的原值写入 _rememberedPreviousCommands，随后立即持久化——
-            // 否则应用重启后 ini 里没有备份，关闭开关时无法恢复用户原来的打开方式
+            // 打开方式由主程序 DocumentFileAssociationHelper 统一权威管理（含启动自检与卸载兜底）。
+            // 这里按本插件设置开关即时应用一次：开启→添加（幂等），关闭→清理残留关联。
+            // 备份持久化在主程序用户数据目录，插件目录被删除后仍可恢复用户原打开方式。
             try
             {
                 if (_autoLaunchOnFileOpen)
-                {
-                    FileAssociationManager.Apply(GetExePath());
-                    SavePluginSettings();
-                }
+                    global::Ink_Canvas.Helpers.DocumentFileAssociationHelper.Apply(GetExePath());
                 else
-                {
-                    FileAssociationManager.Remove(_rememberedPreviousCommands);
-                    _rememberedPreviousCommands.Clear();
-                }
+                    global::Ink_Canvas.Helpers.DocumentFileAssociationHelper.Remove();
             }
             catch { }
 
@@ -126,11 +119,9 @@ namespace Ink_Canvas.Plugins.DocumentToImage
 
         public void Shutdown()
         {
-            // 插件卸载/禁用时恢复系统默认打开方式（若文件关联处于开启状态）
-            if (_autoLaunchOnFileOpen)
-            {
-                try { FileAssociationManager.Remove(_rememberedPreviousCommands); } catch { }
-            }
+            // 插件禁用/卸载时移除 Windows 打开方式，恢复系统默认。
+            // 主程序 PluginWorkshopWindow 在禁用/卸载后也会调用同样的清理作为兜底。
+            try { global::Ink_Canvas.Helpers.DocumentFileAssociationHelper.Remove(); } catch { }
 
             lock (_watcherLock)
             {
@@ -274,7 +265,8 @@ namespace Ink_Canvas.Plugins.DocumentToImage
 
         private void LoadPluginSettings()
         {
-            _autoLaunchOnFileOpen = false;
+            // 默认开启：新安装插件后自动添加打开方式（settings.ini 缺省/无该键时视为开启）
+            _autoLaunchOnFileOpen = true;
             _jumpToWhiteboard = false;
             _autoConvert = true;
             _rememberedPreviousCommands.Clear();
@@ -324,10 +316,6 @@ namespace Ink_Canvas.Plugins.DocumentToImage
                     "jumpToWhiteboard=" + (_jumpToWhiteboard ? "1" : "0"),
                     "autoConvert=" + (_autoConvert ? "1" : "0")
                 };
-                foreach (var pair in _rememberedPreviousCommands)
-                {
-                    lines.Add("previousCommand." + pair.Key + "=" + pair.Value);
-                }
                 File.WriteAllLines(path, lines);
             }
             catch { }
@@ -360,14 +348,14 @@ namespace Ink_Canvas.Plugins.DocumentToImage
             });
 
             root.Children.Add(CreateToggle(
-                "打开文件时自动启动软件（已启动则转发给现有实例）",
-                "将 .doc / .docx / .pdf / .xls / .xlsx 的打开方式临时注册到 Ink Canvas Ultra；关闭开关即恢复系统默认打开方式。",
+                "在 Windows 中添加打开方式（用 Ink Canvas Ultra 自动转换并打开）",
+                "开启后，.doc / .docx / .pdf / .xls / .xlsx 默认用 Ink Canvas Ultra 打开并自动转换；关闭即恢复系统原打开方式。插件被禁用/卸载时会自动移除。",
                 _autoLaunchOnFileOpen,
                 v => { _autoLaunchOnFileOpen = v; },
                 v =>
                 {
-                    if (v) FileAssociationManager.Apply(GetExePath());
-                    else { FileAssociationManager.Remove(_rememberedPreviousCommands); _rememberedPreviousCommands.Clear(); }
+                    if (v) global::Ink_Canvas.Helpers.DocumentFileAssociationHelper.Apply(GetExePath());
+                    else global::Ink_Canvas.Helpers.DocumentFileAssociationHelper.Remove();
                 }));
 
             root.Children.Add(CreateToggle(

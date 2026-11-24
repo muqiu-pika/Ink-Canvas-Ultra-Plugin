@@ -1,9 +1,9 @@
 {
   "id": "ink-canvas.document-to-image",
   "name": "文档转照片",
-  "version": "3.2.0",
+  "version": "3.3.0",
   "author": "muqiu",
-  "description": "将 Word / Excel / PDF 文件转换为图片并添加到照片列表，支持本地转换缓存、同名修改检测与文件打开增强（自动启动软件、跳转白板模式、自动转换开关），使用 NPOI 与 PdfiumViewer，无需安装 Microsoft Office。",
+  "description": "将 Word / Excel / PDF 文件转换为图片并添加到照片列表，支持本地缓存、同名修改检测与文件打开增强：安装后默认在 Windows 中添加打开方式（用 Ink Canvas Ultra 自动转换并打开），可在设置中开关，插件禁用/卸载时自动移除。使用 NPOI 与 PdfiumViewer，无需 Office。",
   "entryAssembly": "DocumentToImagePlugin.dll",
   "entryClass": "Ink_Canvas.Plugins.DocumentToImage.DocumentToImagePlugin",
   "minHostVersion": "26.8.1"
