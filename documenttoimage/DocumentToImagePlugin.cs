@@ -265,9 +265,10 @@ namespace Ink_Canvas.Plugins.DocumentToImage
 
         private void LoadPluginSettings()
         {
-            // 默认开启：新安装插件后自动添加打开方式（settings.ini 缺省/无该键时视为开启）
+            // 默认全部开启：新安装插件后自动添加打开方式并可自动转换、跳转白板
+            // （settings.ini 缺省/无该键时视为开启）
             _autoLaunchOnFileOpen = true;
-            _jumpToWhiteboard = false;
+            _jumpToWhiteboard = true;
             _autoConvert = true;
             _rememberedPreviousCommands.Clear();
 
@@ -349,7 +350,9 @@ namespace Ink_Canvas.Plugins.DocumentToImage
 
             root.Children.Add(CreateToggle(
                 "在 Windows 中添加打开方式（用 Ink Canvas Ultra 自动转换并打开）",
-                "开启后，.doc / .docx / .pdf / .xls / .xlsx 默认用 Ink Canvas Ultra 打开并自动转换；关闭即恢复系统原打开方式。插件被禁用/卸载时会自动移除。",
+                "开启后，本程序会注册为 .doc / .docx / .pdf / .xls / .xlsx 的候选打开方式。"
+                + "请在文件上右键 →「打开方式」→「选择其他应用」→ 选 Ink Canvas Ultra 并勾选"
+                + "「始终使用此应用」，即可设为默认。关闭开关或插件被禁用/卸载时会自动移除注册。",
                 _autoLaunchOnFileOpen,
                 v => { _autoLaunchOnFileOpen = v; },
                 v =>
