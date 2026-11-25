@@ -1,5 +1,9 @@
 # 函数绘图插件更新日志
 
+## v1.3.1 (2026-11-25)
+- 新增绝对值支持：表达式解析与手写公式识别均支持 `|x|`、`|x-3|` 等绝对值写法，全角竖线 `｜`、双竖线 `‖` 自动归一化。
+- 绝对值与相邻值之间支持隐式乘法（如 `2|x|`、`|x||y|`），渲染为 `abs(...)` 函数调用。
+
 ## v1.3.0 (2026-11-14) — 接入 Windows 原生「墨迹公式」
 - 按微软官方文档 `programming-the-math-input-control` / `math-input-control-reference` / `receiving-input-from-the-math-input-control` 接入 **Windows Math Input Control**（与 Word「墨迹公式」同一识别引擎）：`CoCreateInstance(CLSID_MathInputControl)` → `SetOwnerWindow` / `SetPosition` / `EnableExtendedButtons` / `Show` → `_IMathInputControlEvents::Insert(BSTR mathXml)` 拿 MathML → `Hide`。窗口新增「使用 Windows 墨迹公式（Word 同款）」按钮。
 - **零编译期 COM 依赖**：全部后期绑定，不引用 `micaut.dll`、不需要 Tlbimp interop DLL，也不硬编码未公开的 IID/DISPID。通过 `IConnectionPointContainer.EnumConnectionPoints` 枚举连接点、`IConnectionPoint.GetConnectionInterface` 运行时取得事件接口 IID，事件接收器实现 `IDispatch` + `ICustomQueryInterface`。

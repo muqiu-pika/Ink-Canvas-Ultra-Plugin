@@ -160,6 +160,20 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                     string separators = (string)element.Attribute("separators") ?? ",";
                     char separator = separators.Length > 0 ? separators[0] : ',';
                     var children = element.Elements().ToList();
+                    
+                    // 绝对值：mfenced open="|" close="|"
+                    if (open == "|" && close == "|")
+                    {
+                        output.Append("abs(");
+                        for (int i = 0; i < children.Count; i++)
+                        {
+                            if (i > 0) output.Append(separator);
+                            output.Append(Render(children[i], ref unsupported));
+                        }
+                        output.Append(")");
+                        return;
+                    }
+                    
                     output.Append(open == "{" || open == "[" ? "(" : open);
                     for (int i = 0; i < children.Count; i++)
                     {
@@ -227,6 +241,8 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 case "±": case "∓": return "+";
                 case "√": return "sqrt";
                 case "≤": case "≥": case "≠": case "≈": return "=";
+                // 绝对值竖线
+                case "|": return "|";
                 case "(": case ")": case "+": case "-": case "*": case "/": case "^": case "=": case ",":
                     return text;
                 default:

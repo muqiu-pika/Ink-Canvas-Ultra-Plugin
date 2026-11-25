@@ -29,7 +29,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
             {
                 Id = "ink-canvas.function-graph",
                 Name = "函数绘图",
-                Version = "1.3.0"
+                Version = "1.3.1"
             };
 
             try

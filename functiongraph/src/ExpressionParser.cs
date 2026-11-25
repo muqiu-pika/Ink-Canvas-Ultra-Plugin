@@ -89,12 +89,14 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                  .Replace("²", "^2")
                  .Replace("³", "^3")
                  .Replace("[", "(").Replace("]", ")")
-                 .Replace("{", "(").Replace("}", ")");
+                 .Replace("{", "(").Replace("}", ")")
+                 // 手写/输入的绝对值符号：全角竖线、双竖线归一化为单竖线
+                 .Replace("｜", "|").Replace("‖", "||");
 
             return s;
         }
 
-        private enum TokenType { Number, Identifier, Operator, LeftParen, RightParen }
+        private enum TokenType { Number, Identifier, Operator, LeftParen, RightParen, LeftAbs, RightAbs }
 
         private sealed class Token
         {
@@ -106,6 +108,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
         {
             error = null;
             var tokens = new List<Token>();
+            int absDepth = 0; // 当前已打开的绝对值层数，用于区分左/右竖线
             int i = 0;
             while (i < s.Length)
             {
@@ -130,6 +133,23 @@ namespace Ink_Canvas.Plugins.FunctionGraph
 
                 if (c == '(') { tokens.Add(new Token { Type = TokenType.LeftParen, Text = "(" }); i++; continue; }
                 if (c == ')') { tokens.Add(new Token { Type = TokenType.RightParen, Text = ")" }); i++; continue; }
+                if (c == '|') 
+                { 
+                    // 绝对值符号：按“已打开层数 + 前一 token 是否为值”区分左右。
+                    // 0 层时一定是新的绝对值开始（支持 2|x| 这种隐式乘法），
+                    // 已打开且前一个是值时才是收尾（支持 |x-3|、|x||y|）。
+                    bool isRight = absDepth > 0
+                        && tokens.Count > 0
+                        && (tokens[tokens.Count - 1].Type == TokenType.Number
+                            || tokens[tokens.Count - 1].Type == TokenType.Identifier
+                            || tokens[tokens.Count - 1].Type == TokenType.RightParen
+                            || tokens[tokens.Count - 1].Type == TokenType.RightAbs);
+                    if (isRight) absDepth--;
+                    else absDepth++;
+                    tokens.Add(new Token { Type = isRight ? TokenType.RightAbs : TokenType.LeftAbs, Text = "|" });
+                    i++; 
+                    continue; 
+                }
 
                 if (c == '+' || c == '-' || c == '*' || c == '/' || c == '^')
                 {
@@ -142,7 +162,7 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 return null;
             }
 
-            // 隐式乘法：number/)/x/函数名 与 number/(/x/函数名 相邻时插入 *
+            // 隐式乘法：number/)/x/函数名/右绝对值 与 number/(/x/函数名/左绝对值 相邻时插入 *
             var expanded = new List<Token>();
             for (int k = 0; k < tokens.Count; k++)
             {
@@ -152,9 +172,11 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 var next = tokens[k + 1];
                 bool curEndsValue = cur.Type == TokenType.Number
                                     || cur.Type == TokenType.RightParen
+                                    || cur.Type == TokenType.RightAbs
                                     || (cur.Type == TokenType.Identifier);
                 bool nextStartsValue = next.Type == TokenType.Number
                                        || next.Type == TokenType.LeftParen
+                                       || next.Type == TokenType.LeftAbs
                                        || (next.Type == TokenType.Identifier);
                 if (curEndsValue && nextStartsValue)
                 {
@@ -346,6 +368,22 @@ namespace Ink_Canvas.Plugins.FunctionGraph
                 }
                 pos++;
                 return inner;
+            }
+
+            // 绝对值 |...| 视为一元函数 abs(...)
+            if (t.Type == TokenType.LeftAbs)
+            {
+                pos++;
+                var inner = ParseExpression(tokens, ref pos, out error);
+                if (inner == null) return null;
+                if (pos >= tokens.Count || tokens[pos].Type != TokenType.RightAbs)
+                {
+                    error = "绝对值符号未闭合：缺少右侧 |";
+                    return null;
+                }
+                pos++;
+                // 转为 abs 函数调用
+                return x => Math.Abs(inner(x));
             }
 
             error = "此处不应出现 \"" + t.Text + "\"";
