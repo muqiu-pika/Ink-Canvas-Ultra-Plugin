@@ -43,7 +43,7 @@ namespace Ink_Canvas.Plugins.DocumentToImage
         {
             Id = "ink-canvas.document-to-image",
             Name = "文档转照片",
-            Version = "3.3.0",
+            Version = "3.3.1",
             Author = "muqiu",
             Description = "将 Word / Excel / PDF 文件转换为图片并添加到照片列表，支持本地转换缓存、同名修改检测与文件打开增强（自动启动软件、跳转白板模式、自动转换开关），无需 Office",
             EntryAssembly = "DocumentToImagePlugin.dll",
