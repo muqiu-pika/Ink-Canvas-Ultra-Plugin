@@ -25,10 +25,10 @@ namespace Ink_Canvas.Plugins.DocumentToImage
         private readonly Dictionary<string, Timer> _debounceTimers = new Dictionary<string, Timer>();
         private readonly object _watcherLock = new object();
 
-        // ==== 插件设置（文档打开增强）====
+        // ==== 插件设置（文档打开增强）：三项默认全部启用 ====
         private bool _autoLaunchOnFileOpen = true; // 打开 Word/Excel/PDF 时自动启动软件（文件关联）；安装插件后默认开启
-        private bool _jumpToWhiteboard;       // 转换完成后跳转到白板模式
-        private bool _autoConvert = true;     // 打开文件时自动转换（默认开，即既有行为）
+        private bool _jumpToWhiteboard = true;     // 转换完成后跳转到白板模式；默认开启
+        private bool _autoConvert = true;          // 打开文件时自动转换（默认开，即既有行为）
         private readonly Dictionary<string, string> _rememberedPreviousCommands =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         private static readonly string[] AssociatedExtensions = { ".doc", ".docx", ".pdf", ".xls", ".xlsx" };
